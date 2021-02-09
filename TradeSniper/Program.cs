@@ -3,7 +3,6 @@ using System.Diagnostics;
 using LiveSearchEngine.Enums;
 using LiveSearchEngine.LiveSearch;
 using LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch;
-using LiveSearchEngine.LiveSearch.Validators;
 using LiveSearchEngine.Models;
 using LiveSearchEngine.Models.Poe;
 using LiveSearchEngine.Models.Poe.Fetch;
@@ -31,8 +30,6 @@ namespace TradeSniper
                 PoeSessionId = GlobalSettings.PoeSessionId,
                 DelayFactor = GlobalSettings.RequestsDelayFactor
             };
-
-            lsConfiguration.AddValidator(new StockSizeValidator());
 
             var lsEngine = new OfficialTradeLiveSearch(logger, lsConfiguration);
 

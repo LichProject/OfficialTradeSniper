@@ -5,11 +5,10 @@ namespace LiveSearchEngine.Models
 {
     public class SniperItem
     {
-        public SniperItem(string description, string searchHash, string league, int minStock = 0)
+        public SniperItem(string description, string searchHash, string league)
         {
             Description = description;
             SearchHash = searchHash;
-            MinimalStock = minStock;
             League = league;
         }
 
@@ -26,13 +25,8 @@ namespace LiveSearchEngine.Models
         [Description("Лига")]
         public string League { get; set; }
 
-        [Description("Минимальный сток")]
-        public int MinimalStock { get; set; }
-
         [JsonIgnore]
         public LiveUrlWrapper LiveUrlWrapper => _liveUrlWrapper ?? (_liveUrlWrapper = new LiveUrlWrapper(SearchHash, League));
-
-        public bool CompareStock(int stock) => stock >= MinimalStock;
 
         LiveUrlWrapper _liveUrlWrapper;
     }

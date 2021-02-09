@@ -22,13 +22,8 @@ namespace TradeSniper.ConsoleCommands
 
             Logger.Info("Лига:");
             string league = Console.ReadLine();
-
-            Retry:
-            Logger.Info("Минимальный сток: ");
-            if (!ConsoleUtils.GetIntegerFromLine(out int stock) || stock < 0)
-                goto Retry;
-
-            Configuration.SniperSettings.AddSniper(new SniperItem(desc, hash, league, stock));
+            
+            Configuration.SniperSettings.AddSniper(new SniperItem(desc, hash, league));
             Configuration.SniperSettings.Save();
 
             Logger.Info("Добавлено, это уже {0} объект в списке.", Configuration.SniperSettings.SniperItems.Count);

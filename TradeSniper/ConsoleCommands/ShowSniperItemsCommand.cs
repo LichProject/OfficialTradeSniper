@@ -1,5 +1,4 @@
-﻿using LiveSearchEngine.Models;
-using TradeSniper.Models;
+﻿using TradeSniper.Models;
 
 namespace TradeSniper.ConsoleCommands
 {
@@ -16,7 +15,7 @@ namespace TradeSniper.ConsoleCommands
             for (var i = 0; i < items.Count; i++)
             {
                 var item = items[i];
-                Logger.Info("[{0}] {1} -> {2} (MinStock: {3})", i, item.Description, item.SearchHash, item.MinimalStock);
+                Logger.Info("[{0}] {1} -> {2}", i, item.Description, item.SearchHash);
             }
         }
 
