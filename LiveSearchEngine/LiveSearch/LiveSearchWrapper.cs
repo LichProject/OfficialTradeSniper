@@ -12,6 +12,9 @@ namespace LiveSearchEngine.LiveSearch
     /// </summary>
     public sealed class LiveSearchWrapper
     {
+        public event EventHandler OnStart;
+        public event EventHandler OnStop;
+        
         public LiveSearchWrapper(ILiveSearchEngine engine)
         {
             Engine = engine;
@@ -48,12 +51,16 @@ namespace LiveSearchEngine.LiveSearch
                 Engine.Connect(si);
                 Logger.Info($"[LiveSearch::Run] <{si.Description}> {si.LiveUrlWrapper.SearchUrl}");
             }
+            
+            if (IsRunning)
+                OnStart?.Invoke(this, null);
         }
 
         /// <inheritdoc cref="ILiveSearchEngine.Close"/>
         public void Stop()
         {
             Engine.Close();
+            OnStop?.Invoke(this, null);
         }
 
         /// <summary>
