@@ -1,15 +1,15 @@
-﻿using System;
+using System;
 using System.Diagnostics;
-using System.Threading;
-using System.Windows.Forms;
 using LiveSearchEngine.Enums;
+using LiveSearchEngine.LiveSearch;
+using LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch;
+using LiveSearchEngine.LiveSearch.Validators;
 using LiveSearchEngine.Models;
 using LiveSearchEngine.Models.Poe;
 using LiveSearchEngine.Models.Poe.Fetch;
 using TradeSniper.Common;
 using TradeSniper.ConsoleCommands;
 using TradeSniper.Models;
-using TradeSniper.Native;
 using TradeSniper.Settings;
 
 namespace TradeSniper
@@ -25,16 +25,32 @@ namespace TradeSniper
             logger.OnLogMessage += OnLogMessage;
 
             var conMenu = new ConsoleMenu(logger);
+
+            var lsConfiguration = new OfficialTradeConfiguration
+            {
+                PoeSessionId = GlobalSettings.PoeSessionId,
+                DelayFactor = GlobalSettings.RequestsDelayFactor
+            };
+
+            lsConfiguration.AddValidator(new StockSizeValidator());
+
+            var lsEngine = new OfficialTradeLiveSearch(logger, lsConfiguration);
+
+            var ls = new LiveSearchWrapper(lsEngine);
+            ls.SetSniperList(SniperSettings.SniperItems);
+            ls.Subscribe(OnItemFound);
+
             var config = new CommandConfiguration
             {
                 Menu = conMenu,
                 GlobalSettings = GlobalSettings,
-                SniperSettings = SniperSettings
+                SniperSettings = SniperSettings,
+                LiveSearch = ls
             };
 
             conMenu.UseCommandConfiguration(config);
 
-            conMenu.AddCommand(new StartLiveSearchCommand(config, OnItemFound));
+            conMenu.AddCommand<StartLiveSearchCommand>();
             conMenu.AddCommand<StopLiveSearchCommand>();
             conMenu.AddCommand<ShowMenuCommand>();
             conMenu.AddCommand<ShowSniperItemsCommand>();
@@ -50,9 +66,6 @@ namespace TradeSniper
         static void OnItemFound(SniperItem sniperItem, Item item, Listing listing)
         {
             if (listing.Price == null)
-                return;
-
-            if (!item.StackSize.HasValue || !sniperItem.CompareStock(item.StackSize.Value))
                 return;
 
             var sw = Stopwatch.StartNew();

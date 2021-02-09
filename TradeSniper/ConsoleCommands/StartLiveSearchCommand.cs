@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Linq;
-using LiveSearchEngine.Delegates;
-using LiveSearchEngine.LiveSearch;
-using LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch;
 using TradeSniper.Models;
 
 namespace TradeSniper.ConsoleCommands
@@ -30,19 +27,7 @@ namespace TradeSniper.ConsoleCommands
                     Logger.Warn("Не заполнен снайпер-лист.");
                     return;
                 }
-                
-                var lsConfiguration = new OfficialTradeConfiguration
-                {
-                    PoeSessionId = Configuration.GlobalSettings.PoeSessionId,
-                    DelayFactor = Configuration.GlobalSettings.RequestsDelayFactor
-                };
 
-                var lsEngine = new OfficialTradeLiveSearch(Logger, lsConfiguration);
-                
-                Configuration.LiveSearch = new LiveSearchWrapper(lsEngine);
-                Configuration.LiveSearch.SetSniperList(Configuration.SniperSettings.SniperItems);
-                Configuration.LiveSearch.Subscribe(_itemFoundDelegate);
-                
                 Configuration.LiveSearch.Run();
             }
             catch (Exception e)
@@ -54,12 +39,9 @@ namespace TradeSniper.ConsoleCommands
 
         #endregion
 
-        public StartLiveSearchCommand(CommandConfiguration config, ItemFoundDelegate itemFoundDelegate)
+        public StartLiveSearchCommand(CommandConfiguration config)
             : base(config)
         {
-            _itemFoundDelegate = itemFoundDelegate;
         }
-
-        readonly ItemFoundDelegate _itemFoundDelegate;
     }
 }

@@ -25,6 +25,7 @@ namespace LiveSearchEngine.Interfaces
 
         /// <summary>
         /// Connect engine to the livesearch.
+        /// You should connect OnItemFound event to the ValidationDelegate from the base class.
         /// </summary>
         /// <param name="sniperItem">Your sniper item instance.</param>
         void Connect(SniperItem sniperItem);

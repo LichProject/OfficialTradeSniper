@@ -3,7 +3,7 @@
     /// <summary>
     /// Configuration of the official trade api and livesearch.
     /// </summary>
-    public class OfficialTradeConfiguration
+    public class OfficialTradeConfiguration : BaseLiveSearchConfiguration
     {
         /// <summary>
         /// POESESSID Cookie value.

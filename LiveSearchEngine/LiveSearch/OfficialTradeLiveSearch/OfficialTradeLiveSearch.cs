@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using LiveSearchEngine.Delegates;
 using LiveSearchEngine.Interfaces;
 using LiveSearchEngine.Models;
 using WebSocketSharp;
@@ -8,15 +7,11 @@ using WebSocketSharp;
 namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
 {
     /// <inheritdoc/>
-    public class OfficialTradeLiveSearch : ILiveSearchEngine
+    public class OfficialTradeLiveSearch : BaseLiveSearchEngine<OfficialTradeConfiguration>
     {
-        /// <inheritdoc/>
-        public event ItemFoundDelegate OnItemFound;
-
         public OfficialTradeLiveSearch(ILogger logger, OfficialTradeConfiguration configuration)
+            : base(logger, configuration)
         {
-            Logger = logger;
-            _configuration = configuration;
             _apiWrapper = new OfficialTradeApiWrapper(configuration);
         }
 
@@ -28,20 +23,17 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
         #region Implementation of IWebSocketConnectable
 
         /// <inheritdoc/>
-        public ILogger Logger { get; }
-        
-        /// <inheritdoc/>
-        public bool IsConnected => _webSockets.Any(x => x.ReadyState == WebSocketState.Open);
+        public override bool IsConnected => _webSockets.Any(x => x.ReadyState == WebSocketState.Open);
 
         /// <inheritdoc/>
-        public void Connect(SniperItem sniperItem)
+        public override void Connect(SniperItem sniperItem)
         {
             var ws = InitializeWebSocket(sniperItem);
             ws.ConnectAsync();
         }
 
         /// <inheritdoc/>
-        public void Close()
+        public override void Close()
         {
             foreach (var ws in _webSockets)
                 ws.Close();
@@ -51,8 +43,8 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
 
         WebSocket InitializeWebSocket(SniperItem sniperItem)
         {
-            var con = new OfficialTradeWsConnection(Logger, _apiWrapper) {OnItemFound = OnItemFound};
-            var ws = con.Initialize(sniperItem, _configuration.PoeSessionId);
+            var con = new OfficialTradeWsConnection(Logger, _apiWrapper) {OnItemFound = ValidationDelegate};
+            var ws = con.Initialize(sniperItem, Configuration.PoeSessionId);
 
             _webSockets.Add(ws);
 
@@ -61,6 +53,5 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
 
         readonly List<WebSocket> _webSockets = new List<WebSocket>();
         readonly OfficialTradeApiWrapper _apiWrapper;
-        readonly OfficialTradeConfiguration _configuration;
     }
 }

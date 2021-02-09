@@ -54,6 +54,10 @@
         <Compile Include="GlobalConstants.cs" />
         <Compile Include="Interfaces\ILiveSearchEngine.cs" />
         <Compile Include="Interfaces\ILogger.cs" />
+        <Compile Include="Interfaces\ISniperItemValidator.cs" />
+        <Compile Include="LiveSearch\BaseLiveSearchConfiguration.cs" />
+        <Compile Include="LiveSearch\BaseLiveSearchEngine.cs" />
+        <Compile Include="LiveSearch\Validators\StockSizeValidator.cs" />
         <Compile Include="LiveSearch\LiveSearchWrapper.cs" />
         <Compile Include="LiveSearch\OfficialTradeLiveSearch\OfficialTradeApiWrapper.cs" />
         <Compile Include="LiveSearch\OfficialTradeLiveSearch\OfficialTradeConfiguration.cs" />
