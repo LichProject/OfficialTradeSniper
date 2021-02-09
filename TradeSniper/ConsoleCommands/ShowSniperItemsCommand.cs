@@ -1,35 +1,30 @@
-﻿using System;
-using TradeSniper.Interfaces;
+﻿using LiveSearchEngine.Models;
 using TradeSniper.Models;
-using TradeSniper.Settings;
 
 namespace TradeSniper.ConsoleCommands
 {
-    public class ShowSniperItemsCommand : BaseCommand
+    public class ShowSniperItemsCommand : BaseConsoleCommand
     {
         #region Implementation of IConsoleCommand
 
-        public void Execute()
+        public override string Description => "Показать снайпер-лист";
+        public override string Alias => "list";
+
+        public override void Execute()
         {
-            Console.Write("Название: ");
-            string desc = Console.ReadLine();
-
-            Console.Write("Хеш-код поиска: ");
-            string hash = Console.ReadLine();
-
-            Retry:
-            Console.Write("Минимальный сток: ");
-            string stringStock = Console.ReadLine();
-
-            if (!int.TryParse(stringStock, out int stock) && stock >= 0)
-                goto Retry;
-
-            SniperSettings.AddSniper(new SniperItem(desc, hash, stock));
-            SniperSettings.Save();
-
-            Console.WriteLine("Добавлено, это уже {0} объект в списке.", SniperSettings.SniperItems.Count);
+            var items = Configuration.SniperSettings.SniperItems;
+            for (var i = 0; i < items.Count; i++)
+            {
+                var item = items[i];
+                Logger.Info("[{0}] {1} -> {2} (MinStock: {3})", i, item.Description, item.SearchHash, item.MinimalStock);
+            }
         }
 
         #endregion
+
+        public ShowSniperItemsCommand(CommandConfiguration config)
+            : base(config)
+        {
+        }
     }
 }

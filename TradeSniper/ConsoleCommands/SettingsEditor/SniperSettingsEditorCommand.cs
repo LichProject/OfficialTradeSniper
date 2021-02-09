@@ -1,4 +1,5 @@
-﻿﻿using TradeSniper.Models;
+﻿using LiveSearchEngine.Models;
+using TradeSniper.Models;
 using TradeSniper.Settings;
 
 namespace TradeSniper.ConsoleCommands

@@ -1,16 +1,15 @@
-﻿using Newtonsoft.Json;
-using PoeTradeSniperToolV2.ViewModels;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using Newtonsoft.Json;
 
-namespace PoeTradeSniperToolV2.Common
+namespace TradeSniper.Common
 {
-    public class JsonSettings : NotificationObject
+    public class JsonSettings
     {
         public bool HasProperty(string name)
         {
@@ -41,15 +40,8 @@ namespace PoeTradeSniperToolV2.Common
         [JsonIgnore]
         public string FilePath { get; internal set; }
 
-        public static string AssemblyPath
-        {
-            get => Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
-        }
-
-        public static string SettingsPath
-        {
-            get => Path.Combine(AssemblyPath, "Settings");
-        }
+        public static string AssemblyPath => Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
+        public static string SettingsPath => Path.Combine(AssemblyPath, "Settings");
 
         public void Save()
         {
@@ -137,20 +129,20 @@ namespace PoeTradeSniperToolV2.Common
                 {
                     JsonConvert.PopulateObject(text, this);
                 }
-                catch (Exception ex)
+                catch
                 {
                     File.Move(file, $"{file}.{Environment.TickCount}.invalid");
                 }
             }
         }
 
-        public static string GetSettingsFilePath(params string[] subPathParts)
+        protected static string GetAbsoluteFilePath(params string[] subPathParts)
         {
-            List<string> list = new List<string> {SettingsPath};
+            var list = new List<string> {SettingsPath};
             list.AddRange(subPathParts);
             return Path.Combine(list.ToArray());
         }
 
-        private readonly object _fileLock = new object();
+        readonly object _fileLock = new object();
     }
 }

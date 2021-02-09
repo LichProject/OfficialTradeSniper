@@ -1,16 +1,19 @@
 ﻿using System.Collections.Generic;
+using LiveSearchEngine.Models;
 using TradeSniper.Common;
-using TradeSniper.Models;
 
 namespace TradeSniper.Settings
 {
-    public class SniperItems : JsonSettings
+    public class SniperSettings : JsonSettings
     {
-        public SniperItems()
-            : base(GetAbsoluteFilePath("SniperItems.json"))
+        public SniperSettings()
+            : base(GetAbsoluteFilePath("SniperSettings.json"))
         {
         }
 
-        public List<SniperItem> SniperList { get; set; } = new List<SniperItem>();
+        public List<SniperItem> SniperItems { get; set; } = new List<SniperItem>();
+
+        public void AddSniper(SniperItem sniperItem) => SniperItems.Add(sniperItem);
+        public void RemoveSniper(SniperItem sniperItem) => SniperItems.Remove(sniperItem);
     }
 }

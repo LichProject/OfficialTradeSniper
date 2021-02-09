@@ -1,35 +1,27 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Linq;
 
 namespace TradeSniper.Common
 {
-    public class Game
+    public static class Game
     {
-        public string DefaultProcessName = "PathOfExile_x64.exe";
-        
-        public int LookupProcessId()
+        public static Process Proc
         {
-            var process = Process.GetProcessesByName(DefaultProcessName).FirstOrDefault();
-            if (process == null)
-                return 0;
+            get
+            {
+                if (_process == null)
+                {
+                    var process = Process.GetProcessesByName("PathOfExile_x64").FirstOrDefault();
+                    if (process == null)
+                        return null;
 
-            return process.Id;
+                    _process = process;
+                }
+
+                return _process;
+            }
         }
 
-        public void SetForegroundWindow()
-        {
-            throw new NotImplementedException();
-        }
-
-        public void SendChatFmt(string text, object args = null)
-        {
-            SendChat(string.Format(text, args));
-        }
-
-        public void SendChat(string text)
-        {
-            throw new NotImplementedException();
-        }
+        static Process _process;
     }
 }

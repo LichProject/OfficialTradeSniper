@@ -1,10 +1,12 @@
-﻿using TradeSniper.Models;
+﻿using LiveSearchEngine.Models;
+using TradeSniper.Models;
+using TradeSniper.Settings;
 
 namespace TradeSniper.ConsoleCommands
 {
-    public class GlobalSettingsEditor : SettingsEditor
+    public class GlobalSettingsEditorCommand : SettingsEditor<GlobalSettings>
     {
-        public GlobalSettingsEditor(ConsoleCommandConfiguration config)
+        public GlobalSettingsEditorCommand(CommandConfiguration config)
             : base(config, config.GlobalSettings)
         {
         }

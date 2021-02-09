@@ -1,23 +1,25 @@
-﻿using TradeSniper.Interfaces;
-using TradeSniper.Settings;
+﻿using System;
+using LiveSearchEngine.Interfaces;
+using TradeSniper.Interfaces;
+using TradeSniper.Models;
 
 namespace TradeSniper.ConsoleCommands
 {
     public abstract class BaseConsoleCommand : IConsoleCommand
     {
-        protected BaseConsoleCommand(ILogger logger, GlobalSettings globalSettings, SniperSettings sniperSettings)
+        protected BaseConsoleCommand(CommandConfiguration config)
         {
-            GlobalSettings = globalSettings;
-            SniperSettings = sniperSettings;
-            Logger = logger;
+            Configuration = config;
         }
 
-        public ILogger Logger { get; }
-        protected GlobalSettings GlobalSettings { get; }
-        protected SniperSettings SniperSettings { get; }
+        protected CommandConfiguration Configuration { get; }
+        protected ILogger Logger => Configuration.Menu.Logger;
 
         #region Implementation of IConsoleCommand
 
+        public abstract string Description { get; }
+        public abstract string Alias { get; }
+        public virtual Func<bool> ExecuteCondition => null;
         public abstract void Execute();
 
         #endregion

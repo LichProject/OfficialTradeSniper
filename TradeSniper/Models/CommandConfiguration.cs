@@ -1,10 +1,9 @@
-﻿using TradeSniper.Common;
-using TradeSniper.LiveSearch;
+﻿using LiveSearchEngine.LiveSearch;
 using TradeSniper.Settings;
 
 namespace TradeSniper.Models
 {
-    public class ConsoleCommandConfiguration
+    public class CommandConfiguration
     {
         public GlobalSettings GlobalSettings { get; set; }
         public SniperSettings SniperSettings { get; set; }

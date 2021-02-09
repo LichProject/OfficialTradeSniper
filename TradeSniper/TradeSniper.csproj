@@ -2,7 +2,23 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>netcoreapp3.1</TargetFramework>
+        <TargetFramework>net48</TargetFramework>
     </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="InputSimulator" Version="1.0.4" />
+      <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+      <PackageReference Include="RestSharp" Version="106.11.7" />
+      <PackageReference Include="RestSharp.Serializers.NewtonsoftJson" Version="106.11.7" />
+      <PackageReference Include="websocketsharp.core" Version="1.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\LiveSearchEngine\LiveSearchEngine.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="System.Windows.Forms" />
+    </ItemGroup>
 
 </Project>
