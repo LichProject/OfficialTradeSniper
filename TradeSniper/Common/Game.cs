@@ -1,5 +1,10 @@
 ﻿using System.Diagnostics;
 using System.Linq;
+using System.Threading;
+using System.Windows.Forms;
+using LiveSearchEngine.Models.Poe;
+using LiveSearchEngine.Models.Poe.Fetch;
+using TradeSniper.Native;
 
 namespace TradeSniper.Common
 {
@@ -30,7 +35,7 @@ namespace TradeSniper.Common
             Input.InjectKey(Keys.Enter);
             Input.SimulateTextEntry(text);
 
-            Thread.Sleep(45);
+            Thread.Sleep(50);
             Input.InjectKey(Keys.Enter);
         }
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using LiveSearchEngine.Enums;
 using LiveSearchEngine.LiveSearch;
@@ -57,7 +57,7 @@ namespace TradeSniper
             conMenu.AddCommand<AddSniperItemCommand>();
             conMenu.AddCommand<RemoveSniperItemCommand>();
             conMenu.AddCommand<GlobalSettingsEditorCommand>();
-            //menu.AddCommand<SniperSettingsEditorCommand>();
+            conMenu.AddCommand<ResendLatestTradeMessageCommand>();
             conMenu.AddCommand<ClearConsoleCommand>();
 
             conMenu.Run();
@@ -71,30 +71,11 @@ namespace TradeSniper
             var sw = Stopwatch.StartNew();
 
             var sellerName = listing.Account.LastCharacterName;
-            var itemName = $"{item.Name} {item.BaseType}".TrimStart();
-            var itemStock = item.StackSize ?? 1;
-            var league = item.League;
-            var price = listing.Price;
-            var priceAmount = price.Amount * itemStock;
-            var currency = price.Currency;
+            var gameWhisperFmt = Game.FmtGameMessage(item, listing);
 
-            if (currency.Equals("chaos"))
-                currency = "Chaos Orb";
-            else
-                return;
+            Console.WriteLine($"[New item from {sellerName}] {gameWhisperFmt}");
 
-            var itemFmt = $"{itemStock} {itemName} for my {priceAmount} {currency} in {league}.";
-            var gameWhisperFmt = $"@{sellerName} Hi, I'd like to buy your {itemFmt}";
-
-            Console.WriteLine($"[New item from {sellerName}] {itemFmt}");
-
-            Interop.SetForegroundWindow(Game.Proc.MainWindowHandle);
-            Interop.SetActiveWindow(Game.Proc.MainWindowHandle);
-            
-            Input.InjectKey(Keys.Enter);
-            Input.SimulateTextEntry(gameWhisperFmt);
-            Thread.Sleep(40);
-            Input.InjectKey(Keys.Enter);
+            Game.SendChat(gameWhisperFmt);
 
             sw.Stop();
             Console.WriteLine("Сообщение отправлено спустя: " + sw.ElapsedMilliseconds + " мс");
