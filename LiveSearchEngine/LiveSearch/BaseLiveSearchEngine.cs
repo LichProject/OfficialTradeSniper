@@ -16,6 +16,11 @@ namespace LiveSearchEngine.LiveSearch
             Configuration = configuration;
         }
 
+        public virtual void UseNewConfiguration(T configuration)
+        {
+            Configuration = configuration;
+        }
+
         #region Implementation of ILiveSearchEngine
 
         /// <inheritdoc/>
@@ -26,7 +31,7 @@ namespace LiveSearchEngine.LiveSearch
 
         public abstract bool IsConnected { get; }
 
-        protected T Configuration { get; }
+        protected T Configuration { get; private set; }
 
         public abstract void Connect(SniperItem sniperItem);
         public abstract void Close();

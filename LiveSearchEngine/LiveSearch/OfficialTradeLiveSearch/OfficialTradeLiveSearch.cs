@@ -12,7 +12,7 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
         public OfficialTradeLiveSearch(ILogger logger, OfficialTradeConfiguration configuration)
             : base(logger, configuration)
         {
-            _apiWrapper = new OfficialTradeApiWrapper(configuration);
+            ApiWrapper = new OfficialTradeApiWrapper(configuration);
         }
 
         ~OfficialTradeLiveSearch()
@@ -20,7 +20,19 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
             Close();
         }
 
+        public OfficialTradeApiWrapper ApiWrapper { get; }
+
         #region Implementation of IWebSocketConnectable
+
+        #region Overrides of BaseLiveSearchEngine<OfficialTradeConfiguration>
+
+        public override void UseNewConfiguration(OfficialTradeConfiguration configuration)
+        {
+            base.UseNewConfiguration(configuration);
+            ApiWrapper.UseNewConfiguration(configuration);
+        }
+
+        #endregion
 
         /// <inheritdoc/>
         public override bool IsConnected => _webSockets.Any(x => x.ReadyState == WebSocketState.Open);
@@ -43,7 +55,7 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
 
         WebSocket InitializeWebSocket(SniperItem sniperItem)
         {
-            var con = new OfficialTradeWsConnection(Logger, _apiWrapper) {OnItemFound = ValidationDelegate};
+            var con = new OfficialTradeWsConnection(Logger, ApiWrapper) {OnItemFound = ValidationDelegate};
             var ws = con.Initialize(sniperItem, Configuration.PoeSessionId);
 
             _webSockets.Add(ws);
@@ -52,6 +64,5 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
         }
 
         readonly List<WebSocket> _webSockets = new List<WebSocket>();
-        readonly OfficialTradeApiWrapper _apiWrapper;
     }
 }

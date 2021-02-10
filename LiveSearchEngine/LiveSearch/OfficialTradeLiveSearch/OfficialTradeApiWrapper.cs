@@ -14,12 +14,17 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
     {
         public OfficialTradeApiWrapper(OfficialTradeConfiguration configuration)
         {
-            _configuration = configuration;
+            UseNewConfiguration(configuration);
 
             _restClient = new RestClient(GlobalConstants.OfficialTradeApiUrl);
             _restClient.UseNewtonsoftJson();
 
             _restClient.AddDefaultHeader("User-Agent", "x");
+        }
+
+        public void UseNewConfiguration(OfficialTradeConfiguration configuration)
+        {
+            _configuration = configuration;
         }
 
         /// <summary>
@@ -78,7 +83,7 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
             return response;
         }
 
-        readonly OfficialTradeConfiguration _configuration;
+        OfficialTradeConfiguration _configuration;
         readonly RestClient _restClient;
     }
 }
