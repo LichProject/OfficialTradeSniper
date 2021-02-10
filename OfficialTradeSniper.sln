@@ -4,6 +4,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TradeSniper", "TradeSniper\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LiveSearchEngine", "LiveSearchEngine\LiveSearchEngine.csproj", "{31DE15B6-9F5B-443B-8945-E5E69ECD3C79}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImGuiSniperHost", "ImGuiSniperHost\ImGuiSniperHost.csproj", "{B1568031-5D63-40E2-A5FC-06DA760C299B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClickableTransparentOverlay", "..\ClickableTransparentOverlay\ClickableTransparentOverlay\ClickableTransparentOverlay.csproj", "{A054E9D5-568C-431A-9FCF-E12D7A222D00}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "libs", "libs", "{70E35B4A-8BD0-497B-AC59-C6507F5CCD12}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +24,16 @@ Global
 		{31DE15B6-9F5B-443B-8945-E5E69ECD3C79}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{31DE15B6-9F5B-443B-8945-E5E69ECD3C79}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{31DE15B6-9F5B-443B-8945-E5E69ECD3C79}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B1568031-5D63-40E2-A5FC-06DA760C299B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1568031-5D63-40E2-A5FC-06DA760C299B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1568031-5D63-40E2-A5FC-06DA760C299B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1568031-5D63-40E2-A5FC-06DA760C299B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A054E9D5-568C-431A-9FCF-E12D7A222D00}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A054E9D5-568C-431A-9FCF-E12D7A222D00}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A054E9D5-568C-431A-9FCF-E12D7A222D00}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A054E9D5-568C-431A-9FCF-E12D7A222D00}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{A054E9D5-568C-431A-9FCF-E12D7A222D00} = {70E35B4A-8BD0-497B-AC59-C6507F5CCD12}
 	EndGlobalSection
 EndGlobal

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>netcoreapp3.1</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\ClickableTransparentOverlay\ClickableTransparentOverlay\ClickableTransparentOverlay.csproj" />
+      <ProjectReference Include="..\LiveSearchEngine\LiveSearchEngine.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="InputSimulator" Version="1.0.4" />
+      <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Utility" />
+    </ItemGroup>
+
+</Project>

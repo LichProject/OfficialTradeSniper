@@ -1,0 +1,3 @@
+[submodule "libs/ClickableTransparentOverlay"]
+	path = libs/ClickableTransparentOverlay
+	url = https://github.com/LichProject/ClickableTransparentOverlay

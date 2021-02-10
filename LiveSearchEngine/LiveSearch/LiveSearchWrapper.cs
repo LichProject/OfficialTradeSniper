@@ -14,7 +14,7 @@ namespace LiveSearchEngine.LiveSearch
     {
         public event EventHandler OnStart;
         public event EventHandler OnStop;
-        
+
         public LiveSearchWrapper(ILiveSearchEngine engine)
         {
             Engine = engine;
@@ -41,19 +41,20 @@ namespace LiveSearchEngine.LiveSearch
         /// Run the livesearch engine (establish connections and start receiving websocket messages).
         /// </summary>
         /// <exception cref="InvalidOperationException">Sniper-list isn't enitialized (use SetSniperList method).</exception>
-        public void Run()
+        public bool Run()
         {
             if (!_sniperItems.Any())
-                throw new InvalidOperationException("Sniper list isn't initialized.");
+                return false;
 
             foreach (var si in _sniperItems)
             {
                 Engine.Connect(si);
                 Logger.Info($"[LiveSearch::Run] <{si.Description}> {si.LiveUrlWrapper.SearchUrl}");
             }
-            
-            if (IsRunning)
-                OnStart?.Invoke(this, null);
+
+            OnStart?.Invoke(this, null);
+
+            return true;
         }
 
         /// <inheritdoc cref="ILiveSearchEngine.Close"/>
