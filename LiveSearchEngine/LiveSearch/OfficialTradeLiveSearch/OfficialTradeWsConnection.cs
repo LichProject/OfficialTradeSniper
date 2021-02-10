@@ -104,14 +104,14 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
                 return;
             }
 
-            var fetchResponse = _apiWrapper.FetchAsync(p["new"], _sniperItem.LiveUrlWrapper.Hash, MaxItemLimit).GetAwaiter().GetResult();
-            if (fetchResponse == null)
+            var response = _apiWrapper.Fetch(p["new"], _sniperItem.LiveUrlWrapper.Hash, MaxItemLimit);
+            if (response == null)
             {
                 _logger.Warn("FetchResponse is null (you got requests timeout?)");
                 return;
             }
 
-            foreach (var result in fetchResponse.Result)
+            foreach (var result in response.Result)
             {
                 OnItemFound?.Invoke(_sniperItem, result.Item, result.Listing);
             }

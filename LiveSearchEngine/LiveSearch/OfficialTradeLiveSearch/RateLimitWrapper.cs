@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using LiveSearchEngine.Common;
 using LiveSearchEngine.Models;
@@ -37,14 +38,14 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
         /// <summary>
         /// Wait until the delay between requests expires (Task.Delay).
         /// </summary>
-        public async Task WaitAsync()
+        public void Wait()
         {
 #if DEBUG
             Console.WriteLine(_interval.TimeLeft);
 #endif
 
             while (!_interval.Elapsed)
-                await Task.Delay(DefaultSleepStep);
+                Thread.Sleep(DefaultSleepStep);
         }
 
         IEnumerable<RateLimit> ParseHeader(string header)
