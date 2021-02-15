@@ -5,6 +5,10 @@
         <TargetFramework>net472</TargetFramework>
     </PropertyGroup>
 
+	<PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+      <OutputPath>..\..\artifacts\ConsoleHostApp</OutputPath>
+    </PropertyGroup>
+
     <ItemGroup>
       <PackageReference Include="InputSimulator" Version="1.0.4" />
       <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />

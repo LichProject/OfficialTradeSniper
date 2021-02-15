@@ -4,9 +4,13 @@
         <OutputType>Exe</OutputType>
         <TargetFramework>netcoreapp3.1</TargetFramework>
     </PropertyGroup>
+	
+	<PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+      <OutputPath>..\..\artifacts\ImGuiHostApp</OutputPath>
+    </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\ClickableTransparentOverlay\ClickableTransparentOverlay\ClickableTransparentOverlay.csproj" />
+      <ProjectReference Include="..\..\libs\ClickableTransparentOverlay\ClickableTransparentOverlay\ClickableTransparentOverlay.csproj" />
       <ProjectReference Include="..\LiveSearchEngine\LiveSearchEngine.csproj" />
     </ItemGroup>
 
