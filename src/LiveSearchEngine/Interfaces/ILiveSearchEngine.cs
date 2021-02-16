@@ -11,7 +11,7 @@ namespace LiveSearchEngine.Interfaces
         /// <summary>
         /// The event will be fired if the engine finds an item from the sniper list.
         /// </summary>
-        event ItemFoundDelegate OnItemFound;
+        event ItemFoundDelegate ItemFound;
         
         /// <summary>
         /// Logger instance.

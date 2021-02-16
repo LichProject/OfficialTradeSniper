@@ -46,6 +46,9 @@ namespace LiveSearchEngine.LiveSearch
             if (!_sniperItems.Any())
                 return false;
 
+            if (Engine.IsConnected)
+                return false;
+
             foreach (var si in _sniperItems)
             {
                 Engine.Connect(si);
@@ -69,7 +72,7 @@ namespace LiveSearchEngine.LiveSearch
         /// </summary>
         public void Subscribe(ItemFoundDelegate @delegate)
         {
-            Engine.OnItemFound += @delegate;
+            Engine.ItemFound += @delegate;
         }
 
         IEnumerable<SniperItem> _sniperItems;

@@ -45,14 +45,13 @@
         <Reference Include="System.Core" />
         <Reference Include="System.Data" />
         <Reference Include="System.Xml" />
-        <Reference Include="websocket-sharp-core, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
-          <HintPath>C:\Users\Lich\.nuget\packages\websocketsharp.core\1.0.0\lib\netstandard2.0\websocket-sharp-core.dll</HintPath>
-        </Reference>
     </ItemGroup>
     <ItemGroup>
         <Compile Include="Common\Interval.cs" />
         <Compile Include="Delegates\ItemFoundDelegate.cs" />
         <Compile Include="Delegates\LogMessageDelegate.cs" />
+        <Compile Include="Delegates\WebSocketDisconnectedDelegate.cs" />
+        <Compile Include="Enums\CompressionMethod.cs" />
         <Compile Include="Enums\LogLevel.cs" />
         <Compile Include="GlobalConstants.cs" />
         <Compile Include="Interfaces\ILiveSearchEngine.cs" />
@@ -64,7 +63,7 @@
         <Compile Include="LiveSearch\OfficialTradeLiveSearch\OfficialTradeApiWrapper.cs" />
         <Compile Include="LiveSearch\OfficialTradeLiveSearch\OfficialTradeConfiguration.cs" />
         <Compile Include="LiveSearch\OfficialTradeLiveSearch\OfficialTradeLiveSearch.cs" />
-        <Compile Include="LiveSearch\OfficialTradeLiveSearch\OfficialTradeWsConnection.cs" />
+        <Compile Include="LiveSearch\OfficialTradeLiveSearch\OfficialTradeWebSocketFactory.cs" />
         <Compile Include="LiveSearch\OfficialTradeLiveSearch\RateLimitWrapper.cs" />
         <Compile Include="Models\LiveUrlWrapper.cs" />
         <Compile Include="Models\MenuAction.cs" />
@@ -85,10 +84,7 @@
       <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
       <PackageReference Include="RestSharp" Version="106.11.7" />
       <PackageReference Include="RestSharp.Serializers.NewtonsoftJson" Version="106.11.7" />
-      <PackageReference Include="websocketsharp.core" Version="1.0.0" />
-    </ItemGroup>
-    <ItemGroup>
-      <Folder Include="LiveSearch\Validators" />
+      <PackageReference Include="WebSocket4Net" Version="0.15.2" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
     <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

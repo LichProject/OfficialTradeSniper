@@ -24,7 +24,7 @@ namespace LiveSearchEngine.LiveSearch
         #region Implementation of ILiveSearchEngine
 
         /// <inheritdoc/>
-        public event ItemFoundDelegate OnItemFound;
+        public event ItemFoundDelegate ItemFound;
 
         /// <inheritdoc/>
         public ILogger Logger { get; }
@@ -43,7 +43,7 @@ namespace LiveSearchEngine.LiveSearch
             if (Configuration.Validators.Any(x => !x.Validate(sniperItem, item, listing)))
                 return;
 
-            OnItemFound?.Invoke(sniperItem, item, listing);
+            ItemFound?.Invoke(sniperItem, item, listing);
         }
     }
 }

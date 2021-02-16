@@ -26,7 +26,7 @@ namespace LiveSearchEngine.Models
         public string League { get; set; }
 
         [JsonIgnore]
-        public LiveUrlWrapper LiveUrlWrapper => _liveUrlWrapper ?? (_liveUrlWrapper = new LiveUrlWrapper(SearchHash, League));
+        public LiveUrlWrapper LiveUrlWrapper => _liveUrlWrapper ?? (_liveUrlWrapper = new LiveUrlWrapper(this));
 
         LiveUrlWrapper _liveUrlWrapper;
     }

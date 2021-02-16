@@ -32,6 +32,8 @@ namespace TradeSniper
             };
 
             var lsEngine = new OfficialTradeLiveSearch(logger, lsConfiguration);
+            lsEngine.Disconnected += OnWsDisconnected;
+            lsEngine.Error += OnWsDisconnected;
 
             var ls = new LiveSearchWrapper(lsEngine);
             ls.SetSniperList(SniperSettings.SniperItems);
@@ -60,22 +62,34 @@ namespace TradeSniper
             conMenu.Run();
         }
 
+        static void OnWsDisconnected(SniperItem sniperitem, Exception e)
+        {
+            bool hasError = e != null;
+
+            Console.WriteLine($"{sniperitem.LiveUrlWrapper.SearchUrl} - connection {(hasError ? "has an error" : "was closed")}.");
+            if (hasError)
+                Console.WriteLine(e.ToString());
+        }
+
         static void OnItemFound(SniperItem sniperItem, Item item, Listing listing)
         {
             if (listing.Price == null)
                 return;
 
+#if !DEBUG
             var sw = Stopwatch.StartNew();
-
+#endif
             var sellerName = listing.Account.LastCharacterName;
             var gameWhisperFmt = Game.FmtGameMessage(item, listing);
 
             Console.WriteLine($"[New item from {sellerName}] {gameWhisperFmt}");
 
+#if !DEBUG
             Game.SendChat(gameWhisperFmt);
 
             sw.Stop();
             Console.WriteLine("Сообщение отправлено спустя: " + sw.ElapsedMilliseconds + " мс");
+#endif
         }
 
         static void OnLogMessage(LogLevel level, string message) => Console.WriteLine("[{0}] {1}", level, message);

@@ -33,6 +33,9 @@ namespace TradeSniper.ConsoleCommands
 
         void OnItemFound(SniperItem sniperitem, Item item, Listing listing)
         {
+            if (listing.Price == null)
+                return;
+
             _latestGameMessage = Game.FmtGameMessage(item, listing);
         }
 

@@ -1,8 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using LiveSearchEngine.Delegates;
 using LiveSearchEngine.Interfaces;
 using LiveSearchEngine.Models;
-using WebSocketSharp;
+using WebSocket4Net;
 
 namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
 {
@@ -20,6 +21,9 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
             Close();
         }
 
+        public WebSocketDisconnectedDelegate Disconnected;
+        public WebSocketDisconnectedDelegate Error;
+
         public OfficialTradeApiWrapper ApiWrapper { get; }
 
         #region Implementation of IWebSocketConnectable
@@ -35,13 +39,14 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
         #endregion
 
         /// <inheritdoc/>
-        public override bool IsConnected => _webSockets.Any(x => x.ReadyState == WebSocketState.Open);
+        public override bool IsConnected => _webSockets.Any(x => x.State == WebSocketState.Open);
 
         /// <inheritdoc/>
         public override void Connect(SniperItem sniperItem)
         {
-            var ws = InitializeWebSocket(sniperItem);
-            ws.ConnectAsync();
+            var ws = CreateWebSocketClient(sniperItem);
+            _webSockets.Add(ws);
+            ws.Open();
         }
 
         /// <inheritdoc/>
@@ -53,14 +58,19 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
 
         #endregion
 
-        WebSocket InitializeWebSocket(SniperItem sniperItem)
+        OfficialTradeWebSocketFactory GetFactory()
         {
-            var con = new OfficialTradeWsConnection(Logger, ApiWrapper) {OnItemFound = ValidationDelegate};
-            var ws = con.Initialize(sniperItem, Configuration.PoeSessionId);
+            return new OfficialTradeWebSocketFactory(ApiWrapper)
+            {
+                ItemFound = ValidationDelegate,
+                Disconnected = Disconnected,
+                Error = Error
+            };
+        }
 
-            _webSockets.Add(ws);
-
-            return ws;
+        WebSocket CreateWebSocketClient(SniperItem item)
+        {
+            return GetFactory().Create(item, Configuration.PoeSessionId);
         }
 
         readonly List<WebSocket> _webSockets = new List<WebSocket>();
