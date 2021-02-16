@@ -9,6 +9,7 @@ namespace ImGuiSniperHost
 
         public const ImGuiWindowFlags DefaultWindowFlags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.AlwaysAutoResize;
         public const string WindowTitle = "Sniper Engine (c) LichProject";
+        public static readonly Vector2 LoggerChildSize = new Vector2(600, 200);
 
         #endregion
 

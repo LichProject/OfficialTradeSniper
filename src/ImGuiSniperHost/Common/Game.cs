@@ -9,6 +9,10 @@ namespace ImGuiSniperHost.Common
         {
             get
             {
+#if DEBUG
+                return new Process();
+#endif
+
                 if (_process == null)
                 {
                     var process = Process.GetProcessesByName("PathOfExile_x64").FirstOrDefault();

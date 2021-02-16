@@ -1,5 +1,10 @@
-﻿using ImGuiNET;
+﻿using System;
+using System.Drawing;
+using System.Linq;
+using System.Numerics;
+using ImGuiNET;
 using ImGuiSniperHost.Common;
+using LiveSearchEngine.Enums;
 
 namespace ImGuiSniperHost.Controllers
 {
@@ -56,7 +61,7 @@ namespace ImGuiSniperHost.Controllers
 
                 ImGui.SameLine();
 
-                if (ImGui.Button("Demo", GlobalStyle.LargeButtonSize))
+                if (ImGui.Button("ImGui Demo", GlobalStyle.LargeButtonSize))
                     DemoWindowActive = true;
 
                 if (DemoWindowActive)
@@ -69,6 +74,36 @@ namespace ImGuiSniperHost.Controllers
 
                 if (SettingsWindowActive)
                     _settingsController.Draw();
+
+                ImGui.NewLine();
+
+                ImGui.Text("Logs");
+                ImGui.SameLine();
+                
+                if (ImGui.SmallButton("Clear"))
+                    Logger.Clear();
+
+                ImGui.BeginChild("logs_child_window", GlobalStyle.LoggerChildSize, true, ImGuiWindowFlags.AlwaysAutoResize);
+
+                foreach (var (level, message) in Logger.GetList().TakeLast(100).ToList())
+                {
+                    var color = level switch
+                    {
+                        LogLevel.Warn => Color.Yellow,
+                        LogLevel.Error => Color.Red,
+                        _ => Color.White,
+                    };
+
+                    ImGui.PushTextWrapPos(ImGui.GetCursorPos().X + 480);
+                    ImGui.TextColored(color.ToImGuiVec4(), $"[{level}] {message}");
+                    ImGui.PopTextWrapPos();
+
+                    // auto-scroll
+                    if (Math.Abs(ImGui.GetScrollY() - ImGui.GetScrollMaxY()) < 0.1f)
+                        ImGui.SetScrollHereY(0);
+                }
+
+                ImGui.EndChild();
             }
             else
             {
@@ -80,6 +115,8 @@ namespace ImGuiSniperHost.Controllers
 
             ImGui.End();
         }
+
+        static ImGuiLogger Logger => ImGuiLogger.Instance;
 
         readonly SniperController _sniperController = new SniperController();
         readonly SettingsController _settingsController = new SettingsController();

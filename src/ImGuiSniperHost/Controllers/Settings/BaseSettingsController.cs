@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using ImGuiNET;
 using ImGuiSniperHost.Common;
@@ -21,18 +22,21 @@ namespace ImGuiSniperHost.Controllers.Settings
             
             if (ImGui.Button("Save##" + id))
             {
-                _saved = td;
+                _savedLabels[id] = td;
                 preSaveCallback?.Invoke();
                 settings.Save();
             }
             
-            if (_saved.HasValue && _saved.Value > td.Subtract(SaveTextFadeTimeout))
+            if (!_savedLabels.TryGetValue(id, out var savedTd))
+                return;
+            
+            if (savedTd > td.Subtract(SaveTextFadeTimeout))
             {
                 ImGui.SameLine();
                 ImGui.TextColored(Color.Green.ToImGuiVec4(), "Saved!");
             }
         }
 
-        TimeSpan? _saved;
+        readonly Dictionary<string, TimeSpan> _savedLabels = new Dictionary<string, TimeSpan>();
     }
 }
