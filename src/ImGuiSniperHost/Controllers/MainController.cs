@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Drawing;
 using System.Linq;
-using System.Numerics;
 using ImGuiNET;
 using ImGuiSniperHost.Common;
 using LiveSearchEngine.Enums;

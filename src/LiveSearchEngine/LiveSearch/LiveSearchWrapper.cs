@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using LiveSearchEngine.Delegates;
 using LiveSearchEngine.Interfaces;
-using LiveSearchEngine.Models;
+using LiveSearchEngine.Models.Default;
 
 namespace LiveSearchEngine.LiveSearch
 {
@@ -32,7 +32,7 @@ namespace LiveSearchEngine.LiveSearch
         /// <summary>
         /// Set the sniper list for the livesearch engine.
         /// </summary>
-        public void SetSniperList(IEnumerable<SniperItem> sniperItems)
+        public void SetSniperList(IEnumerable<ISniperItem> sniperItems)
         {
             _sniperItems = sniperItems;
         }
@@ -52,7 +52,7 @@ namespace LiveSearchEngine.LiveSearch
             foreach (var si in _sniperItems)
             {
                 Engine.Connect(si);
-                Logger.Info($"[LiveSearch::Run] <{si.Description}> {si.LiveUrlWrapper.SearchUrl}");
+                Logger.Info($"[LiveSearch::Run] <{si.Description}> {si.SearchUrlWrapper.SearchUrl}");
             }
 
             OnStart?.Invoke(this, null);
@@ -75,6 +75,6 @@ namespace LiveSearchEngine.LiveSearch
             Engine.ItemFound += @delegate;
         }
 
-        IEnumerable<SniperItem> _sniperItems;
+        IEnumerable<ISniperItem> _sniperItems;
     }
 }

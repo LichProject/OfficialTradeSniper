@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using ImGuiSniperHost.Common;
-using LiveSearchEngine.Models;
+using LiveSearchEngine.Models.Default;
 
 namespace ImGuiSniperHost.Settings
 {

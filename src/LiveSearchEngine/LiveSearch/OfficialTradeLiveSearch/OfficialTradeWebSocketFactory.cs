@@ -1,11 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Security.Authentication;
-using LiveSearchEngine.Common;
 using LiveSearchEngine.Delegates;
-using LiveSearchEngine.Enums;
 using LiveSearchEngine.Interfaces;
-using LiveSearchEngine.Models;
 using Newtonsoft.Json;
 using SuperSocket.ClientEngine;
 using WebSocket4Net;
@@ -43,7 +39,7 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
         /// <param name="sniperItem">What do you want to snipe.</param>
         /// <param name="poeSessionId">POESESSID cookie value.</param>
         /// <exception cref="InvalidOperationException">Connection has already been established.</exception>
-        public WebSocket Create(SniperItem sniperItem, string poeSessionId)
+        public WebSocket Create(ISniperItem sniperItem, string poeSessionId)
         {
             if (_ws != null)
                 throw new InvalidOperationException("initialized recently.");
@@ -56,7 +52,7 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
             };
 
             _ws = new WebSocket(
-                sniperItem.LiveUrlWrapper.WebSocketUrl,
+                sniperItem.SearchUrlWrapper.WebSocketUrl,
                 cookies: cookies,
                 origin: GlobalConstants.OfficialSiteUrl,
                 userAgent: "websocket-client");
@@ -99,7 +95,7 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
             if (!p.ContainsKey("new"))
                 return;
 
-            var fetchResponse = _apiWrapper.Fetch(p["new"], _sniperItem.LiveUrlWrapper.Hash, MaxItemLimit);
+            var fetchResponse = _apiWrapper.Fetch(p["new"], _sniperItem.SearchUrlWrapper.Hash, MaxItemLimit);
             if (fetchResponse == null)
                 return;
 
@@ -118,6 +114,6 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
         readonly OfficialTradeApiWrapper _apiWrapper;
 
         WebSocket _ws;
-        SniperItem _sniperItem;
+        ISniperItem _sniperItem;
     }
 }

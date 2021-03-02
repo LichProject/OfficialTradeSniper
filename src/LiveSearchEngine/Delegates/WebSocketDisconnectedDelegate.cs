@@ -1,7 +1,7 @@
 ﻿using System;
-using LiveSearchEngine.Models;
+using LiveSearchEngine.Interfaces;
 
 namespace LiveSearchEngine.Delegates
 {
-    public delegate void WebSocketDisconnectedDelegate(SniperItem sniperItem, Exception exception);
+    public delegate void WebSocketDisconnectedDelegate(ISniperItem sniperItem, Exception exception);
 }

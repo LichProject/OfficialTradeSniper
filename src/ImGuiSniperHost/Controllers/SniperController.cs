@@ -2,9 +2,9 @@
 using ImGuiNET;
 using ImGuiSniperHost.Common;
 using ImGuiSniperHost.Settings;
+using LiveSearchEngine.Interfaces;
 using LiveSearchEngine.LiveSearch;
 using LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch;
-using LiveSearchEngine.Models;
 using LiveSearchEngine.Models.Poe;
 using LiveSearchEngine.Models.Poe.Fetch;
 
@@ -85,14 +85,14 @@ namespace ImGuiSniperHost.Controllers
             _liveSearch.SetSniperList(SniperSettings.SniperItems);
         }
 
-        void OnWsError(SniperItem sniperitem, Exception exception)
+        void OnWsError(ISniperItem sniperitem, Exception exception)
         {
             Logger.Warn("Sniper (Description: {0}) thrown an exception:\n{1}", sniperitem.Description, exception);
         }
 
-        void OnWsDisconnected(SniperItem sniperitem, Exception exception)
+        void OnWsDisconnected(ISniperItem sniperitem, Exception exception)
         {
-            Logger.Warn("Connection to {0} has been closed.", sniperitem.LiveUrlWrapper.SearchUrl);
+            Logger.Warn("Connection to {0} has been closed.", sniperitem.SearchUrlWrapper.SearchUrl);
         }
 
         void LiveSearchOnStop(object sender, EventArgs e)
@@ -100,7 +100,7 @@ namespace ImGuiSniperHost.Controllers
             Logger.Info("Livesearch engine has been stopped.");
         }
 
-        void OnItemFound(SniperItem sniperItem, Item item, Listing listing)
+        void OnItemFound(ISniperItem sniperItem, Item item, Listing listing)
         {
             // TODO: TEMPORARY LOG.
             // TODO: Let this method to throw control to the other classes.

@@ -1,5 +1,4 @@
 ﻿using LiveSearchEngine.Delegates;
-using LiveSearchEngine.Models;
 
 namespace LiveSearchEngine.Interfaces
 {
@@ -28,7 +27,7 @@ namespace LiveSearchEngine.Interfaces
         /// You should connect OnItemFound event to the ValidationDelegate from the base class.
         /// </summary>
         /// <param name="sniperItem">Your sniper item instance.</param>
-        void Connect(SniperItem sniperItem);
+        void Connect(ISniperItem sniperItem);
         
         /// <summary>
         /// Stops the livesearch engine and disconnects all available websocket connections.

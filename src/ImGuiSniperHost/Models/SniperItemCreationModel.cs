@@ -1,4 +1,4 @@
-﻿using LiveSearchEngine.Models;
+﻿using LiveSearchEngine.Models.Default;
 
 namespace ImGuiSniperHost.Models
 {

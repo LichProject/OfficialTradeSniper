@@ -3,6 +3,7 @@ using System.Linq;
 using LiveSearchEngine.Delegates;
 using LiveSearchEngine.Interfaces;
 using LiveSearchEngine.Models;
+using LiveSearchEngine.Models.Default;
 using WebSocket4Net;
 
 namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
@@ -42,7 +43,7 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
         public override bool IsConnected => _webSockets.Any(x => x.State == WebSocketState.Open);
 
         /// <inheritdoc/>
-        public override void Connect(SniperItem sniperItem)
+        public override void Connect(ISniperItem sniperItem)
         {
             var ws = CreateWebSocketClient(sniperItem);
             _webSockets.Add(ws);
@@ -68,7 +69,7 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
             };
         }
 
-        WebSocket CreateWebSocketClient(SniperItem item)
+        WebSocket CreateWebSocketClient(ISniperItem item)
         {
             return GetFactory().Create(item, Configuration.PoeSessionId);
         }

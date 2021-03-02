@@ -1,5 +1,7 @@
 ﻿using System;
+using LiveSearchEngine.Interfaces;
 using LiveSearchEngine.Models;
+using LiveSearchEngine.Models.Default;
 using LiveSearchEngine.Models.Poe;
 using LiveSearchEngine.Models.Poe.Fetch;
 using TradeSniper.Common;
@@ -31,7 +33,7 @@ namespace TradeSniper.ConsoleCommands
             Configuration.LiveSearch.Subscribe(OnItemFound);
         }
 
-        void OnItemFound(SniperItem sniperitem, Item item, Listing listing)
+        void OnItemFound(ISniperItem sniperitem, Item item, Listing listing)
         {
             if (listing.Price == null)
                 return;

@@ -1,5 +1,6 @@
 ﻿using System;
 using LiveSearchEngine.Models;
+using LiveSearchEngine.Models.Default;
 using TradeSniper.Common.Utils;
 using TradeSniper.Models;
 

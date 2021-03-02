@@ -1,9 +1,9 @@
 ﻿using System;
-using System.Diagnostics;
 using LiveSearchEngine.Enums;
+using LiveSearchEngine.Interfaces;
 using LiveSearchEngine.LiveSearch;
 using LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch;
-using LiveSearchEngine.Models;
+using LiveSearchEngine.Models.Default;
 using LiveSearchEngine.Models.Poe;
 using LiveSearchEngine.Models.Poe.Fetch;
 using TradeSniper.Common;
@@ -62,16 +62,16 @@ namespace TradeSniper
             conMenu.Run();
         }
 
-        static void OnWsDisconnected(SniperItem sniperitem, Exception e)
+        static void OnWsDisconnected(ISniperItem sniperitem, Exception e)
         {
             bool hasError = e != null;
 
-            Console.WriteLine($"{sniperitem.LiveUrlWrapper.SearchUrl} - connection {(hasError ? "has an error" : "was closed")}.");
+            Console.WriteLine($"{sniperitem.SearchUrlWrapper.SearchUrl} - connection {(hasError ? "has an error" : "was closed")}.");
             if (hasError)
                 Console.WriteLine(e.ToString());
         }
 
-        static void OnItemFound(SniperItem sniperItem, Item item, Listing listing)
+        static void OnItemFound(ISniperItem sniperItem, Item item, Listing listing)
         {
             if (listing.Price == null)
                 return;

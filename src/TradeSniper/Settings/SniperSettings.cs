@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using LiveSearchEngine.Models;
+using LiveSearchEngine.Models.Default;
 using TradeSniper.Common;
 
 namespace TradeSniper.Settings

@@ -6,6 +6,7 @@ using ImGuiSniperHost.Common;
 using ImGuiSniperHost.Models;
 using ImGuiSniperHost.Settings;
 using LiveSearchEngine.Models;
+using LiveSearchEngine.Models.Default;
 
 namespace ImGuiSniperHost.Controllers.Settings
 {
@@ -26,7 +27,7 @@ namespace ImGuiSniperHost.Controllers.Settings
 
                 if (ImGui.CollapsingHeader(item.Description))
                 {
-                    ImGui.Text(item.LiveUrlWrapper.SearchUrl);
+                    ImGui.Text(item.SearchUrlWrapper.SearchUrl);
 
                     ShowInputForModel(model, true);
 
@@ -91,7 +92,7 @@ namespace ImGuiSniperHost.Controllers.Settings
 
             CreationModel.Reset();
 
-            Logger.Info("Created new sniper item ({0}: {1})", model.Description, model.LiveUrlWrapper.SearchUrl);
+            Logger.Info("Created new sniper item ({0}: {1})", model.Description, model.SearchUrlWrapper.SearchUrl);
         }
 
         bool ValidateSniperItem(SniperItemCreationModel model)

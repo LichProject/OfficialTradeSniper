@@ -2,6 +2,7 @@
 using LiveSearchEngine.Delegates;
 using LiveSearchEngine.Interfaces;
 using LiveSearchEngine.Models;
+using LiveSearchEngine.Models.Default;
 using LiveSearchEngine.Models.Poe;
 using LiveSearchEngine.Models.Poe.Fetch;
 
@@ -33,12 +34,12 @@ namespace LiveSearchEngine.LiveSearch
 
         protected T Configuration { get; private set; }
 
-        public abstract void Connect(SniperItem sniperItem);
+        public abstract void Connect(ISniperItem sniperItem);
         public abstract void Close();
 
         #endregion
 
-        protected void ValidationDelegate(SniperItem sniperItem, Item item, Listing listing)
+        protected void ValidationDelegate(ISniperItem sniperItem, Item item, Listing listing)
         {
             if (Configuration.Validators.Any(x => !x.Validate(sniperItem, item, listing)))
                 return;

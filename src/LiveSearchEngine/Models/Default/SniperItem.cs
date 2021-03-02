@@ -1,9 +1,10 @@
 ﻿using System.ComponentModel;
+using LiveSearchEngine.Interfaces;
 using Newtonsoft.Json;
 
-namespace LiveSearchEngine.Models
+namespace LiveSearchEngine.Models.Default
 {
-    public class SniperItem
+    public class SniperItem : ISniperItem
     {
         public SniperItem(string description, string searchHash, string league)
         {
@@ -19,15 +20,15 @@ namespace LiveSearchEngine.Models
         [Description("Описание")]
         public string Description { get; set; }
 
+        [JsonIgnore]
+        public ISearchUrlWrapper SearchUrlWrapper => _liveUrlWrapper ?? (_liveUrlWrapper = new LiveUrlWrapper(this));
+
         [Description("Хеш-код из поиска")]
         public string SearchHash { get; set; }
 
         [Description("Лига")]
         public string League { get; set; }
 
-        [JsonIgnore]
-        public LiveUrlWrapper LiveUrlWrapper => _liveUrlWrapper ?? (_liveUrlWrapper = new LiveUrlWrapper(this));
-
-        LiveUrlWrapper _liveUrlWrapper;
+        ISearchUrlWrapper _liveUrlWrapper;
     }
 }

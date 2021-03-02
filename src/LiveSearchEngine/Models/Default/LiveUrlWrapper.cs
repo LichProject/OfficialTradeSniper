@@ -1,6 +1,8 @@
-﻿namespace LiveSearchEngine.Models
+﻿using LiveSearchEngine.Interfaces;
+
+namespace LiveSearchEngine.Models.Default
 {
-    public class LiveUrlWrapper
+    public class LiveUrlWrapper : ISearchUrlWrapper
     {
         public LiveUrlWrapper(SniperItem sniperItem)
         {

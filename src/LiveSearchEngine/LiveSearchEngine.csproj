@@ -55,7 +55,9 @@
         <Compile Include="Enums\LogLevel.cs" />
         <Compile Include="GlobalConstants.cs" />
         <Compile Include="Interfaces\ILiveSearchEngine.cs" />
+        <Compile Include="Interfaces\ISearchUrlWrapper.cs" />
         <Compile Include="Interfaces\ILogger.cs" />
+        <Compile Include="Interfaces\ISniperItem.cs" />
         <Compile Include="Interfaces\ISniperItemValidator.cs" />
         <Compile Include="LiveSearch\BaseLiveSearchConfiguration.cs" />
         <Compile Include="LiveSearch\BaseLiveSearchEngine.cs" />
@@ -65,7 +67,8 @@
         <Compile Include="LiveSearch\OfficialTradeLiveSearch\OfficialTradeLiveSearch.cs" />
         <Compile Include="LiveSearch\OfficialTradeLiveSearch\OfficialTradeWebSocketFactory.cs" />
         <Compile Include="LiveSearch\OfficialTradeLiveSearch\RateLimitWrapper.cs" />
-        <Compile Include="Models\LiveUrlWrapper.cs" />
+        <Compile Include="Models\Default\LiveUrlWrapper.cs" />
+        <Compile Include="Models\Default\SniperItem.cs" />
         <Compile Include="Models\MenuAction.cs" />
         <Compile Include="Models\Poe\Account.cs" />
         <Compile Include="Models\Poe\Fetch\FetchResponse.cs" />
@@ -77,7 +80,6 @@
         <Compile Include="Models\Poe\Search\SearchResponse.cs" />
         <Compile Include="Models\Poe\Search\Status.cs" />
         <Compile Include="Models\RateLimit.cs" />
-        <Compile Include="Models\SniperItem.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
     </ItemGroup>
     <ItemGroup>
