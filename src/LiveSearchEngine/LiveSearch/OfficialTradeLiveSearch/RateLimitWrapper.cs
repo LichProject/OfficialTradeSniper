@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using LiveSearchEngine.Common;
+using LiveSearchEngine.Interfaces;
 using LiveSearchEngine.Models;
 
 namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
@@ -11,9 +12,9 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
     /// <summary>
     /// Per requests delay wrapper.
     /// </summary>
-    public class RateLimitWrapper
+    public class RateLimitWrapper : IRateLimit
     {
-        const int DefaultSleepStep = 20;
+        const int DefaultSleepStep = 10;
 
         /// <summary>
         /// Set the interval to 1000 ms.
@@ -23,20 +24,19 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
             _interval = new Interval(1000);
         }
 
-        /// <summary>
-        /// Change the delay interval.
-        /// </summary>
-        /// <param name="xRateLimitIpHeaderValue">X-Rate-Limit-Ip header value (format is XX:XX:XX).</param>
-        /// <param name="factor">Delay factor.</param>
-        public void ChangeInterval(string xRateLimitIpHeaderValue, double factor = 1.0)
+        public void ChangeInterval(params object[] args)
         {
-            var rates = ParseHeader(xRateLimitIpHeaderValue);
-            var delay = rates.Max(x => x.BestDelayMs);
-            _interval = new Interval(delay * factor);
+            var accountRate = ParseHeader(args.ElementAtOrDefault(0) as string);
+            var ipRate = ParseHeader(args.ElementAtOrDefault(1) as string);
+            var delay = accountRate.Union(ipRate).Max(x => x.TotalDelayMs) + 100;
+            if (_interval != null && Math.Abs(_interval.Delay - delay) > 0)
+            {
+                _interval = new Interval(delay);
+            }
         }
 
         /// <summary>
-        /// Wait until the delay between requests expires (Task.Delay).
+        /// Wait delay between requests.
         /// </summary>
         public void Wait()
         {
@@ -46,6 +46,17 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
 
             while (!_interval.Elapsed)
                 Thread.Sleep(DefaultSleepStep);
+        }
+
+        /// <inheritdoc cref="Wait"/>
+        public async Task WaitAsync()
+        {
+#if DEBUG
+            Console.WriteLine(_interval.TimeLeft);
+#endif
+
+            while (!_interval.Elapsed)
+                await Task.Delay(DefaultSleepStep);
         }
 
         IEnumerable<RateLimit> ParseHeader(string header)

@@ -1,33 +1,24 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
-using LiveSearchEngine.Delegates;
 using LiveSearchEngine.Interfaces;
-using LiveSearchEngine.Models;
-using LiveSearchEngine.Models.Default;
-using WebSocket4Net;
+using Newtonsoft.Json;
+using WebSocketSharp;
 
 namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
 {
-    /// <inheritdoc/>
-    public class OfficialTradeLiveSearch : BaseLiveSearchEngine<OfficialTradeConfiguration>
+    public class OfficialTradeLiveSearch : LiveSearchEngineBase<OfficialTradeConfiguration>
     {
-        public OfficialTradeLiveSearch(ILogger logger, OfficialTradeConfiguration configuration)
-            : base(logger, configuration)
+        const int MaxItemLimit = 10;
+        
+        bool _authenticated;
+        
+        public OfficialTradeLiveSearch(OfficialTradeConfiguration configuration)
+            : base(configuration, new RateLimitWrapper())
         {
-            ApiWrapper = new OfficialTradeApiWrapper(configuration);
+            ApiWrapper = new OfficialTradeApiWrapper(configuration, RateLimit);
         }
-
-        ~OfficialTradeLiveSearch()
-        {
-            Close();
-        }
-
-        public WebSocketDisconnectedDelegate Disconnected;
-        public WebSocketDisconnectedDelegate Error;
 
         public OfficialTradeApiWrapper ApiWrapper { get; }
 
-        #region Implementation of IWebSocketConnectable
 
         #region Overrides of BaseLiveSearchEngine<OfficialTradeConfiguration>
 
@@ -37,43 +28,43 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
             ApiWrapper.UseNewConfiguration(configuration);
         }
 
-        #endregion
-
-        /// <inheritdoc/>
-        public override bool IsConnected => _webSockets.Any(x => x.State == WebSocketState.Open);
-
-        /// <inheritdoc/>
-        public override void Connect(ISniperItem sniperItem)
+        public override bool ValidateConfiguration()
         {
-            var ws = CreateWebSocketClient(sniperItem);
-            _webSockets.Add(ws);
-            ws.Open();
+            return !string.IsNullOrEmpty(Configuration.PoeSessionId);
         }
 
-        /// <inheritdoc/>
-        public override void Close()
+        protected override WebSocket CreateWebSocket(ISniperItem sniperItem)
         {
-            foreach (var ws in _webSockets)
-                ws.Close();
+            return new OfficialTradeWebSocketFactory().Create(sniperItem, Configuration.PoeSessionId);
         }
 
         #endregion
 
-        OfficialTradeWebSocketFactory GetFactory()
+        #region WebSocket
+
+        protected override void WsOnMessageReceived(ISniperItem sniperItem, MessageEventArgs e)
         {
-            return new OfficialTradeWebSocketFactory(ApiWrapper)
+            var response = e.Data;
+            if (!_authenticated && response.Contains("auth"))
             {
-                ItemFound = ValidationDelegate,
-                Disconnected = Disconnected,
-                Error = Error
-            };
+                _authenticated = true;
+                return;
+            }
+
+            var p = JsonConvert.DeserializeObject<Dictionary<string, Stack<string>>>(response);
+            if (!p.ContainsKey("new"))
+                return;
+            
+            var fetchResponse = ApiWrapper.Fetch(p["new"], sniperItem.SearchUrlWrapper.Hash, MaxItemLimit);
+            if (fetchResponse == null)
+                return;
+
+            foreach (var result in fetchResponse.Result)
+            {
+                RaiseItemFoundEvent(sniperItem, result.Item, result.Listing);
+            }
         }
 
-        WebSocket CreateWebSocketClient(ISniperItem item)
-        {
-            return GetFactory().Create(item, Configuration.PoeSessionId);
-        }
-
-        readonly List<WebSocket> _webSockets = new List<WebSocket>();
+        #endregion
     }
 }

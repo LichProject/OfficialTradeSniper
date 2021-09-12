@@ -13,6 +13,6 @@
         public int TotalSeconds { get; }
         public int Timeout { get; }
 
-        public double BestDelayMs => TotalSeconds / (double) TotalRequests * 1000;
+        public double TotalDelayMs => TotalSeconds / (double) TotalRequests * 1000;
     }
 }

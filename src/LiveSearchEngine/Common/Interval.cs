@@ -25,11 +25,14 @@ namespace LiveSearchEngine.Common
         {
             get
             {
-                if (_sw.ElapsedMilliseconds < Delay)
-                    return false;
+                lock (_lock)
+                {
+                    if (_sw.ElapsedMilliseconds < Delay)
+                        return false;
 
-                _sw.Restart();
-                return true;
+                    _sw.Restart();
+                    return true;
+                }
             }
         }
 
@@ -40,14 +43,18 @@ namespace LiveSearchEngine.Common
         {
             get
             {
-                var timeLeft = Delay - _sw.ElapsedMilliseconds;
-                if (timeLeft < 0)
-                    return 0;
+                lock (_lock)
+                {
+                    var timeLeft = Delay - _sw.ElapsedMilliseconds;
+                    if (timeLeft < 0)
+                        return 0;
 
-                return timeLeft;
+                    return timeLeft;
+                }
             }
         }
 
+        readonly object _lock = new object();
         readonly Stopwatch _sw;
     }
 }
