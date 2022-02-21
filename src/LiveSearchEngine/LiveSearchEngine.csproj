@@ -12,6 +12,8 @@
         <PackageTags>sniper pathofexile trade poe</PackageTags>
         <PackageVersion>1.0.4</PackageVersion>
         <PackageLicenseUrl>https://licenses.nuget.org/MIT</PackageLicenseUrl>
+        <Configurations>Debug;Release</Configurations>
+        <Platforms>AnyCPU;x64</Platforms>
     </PropertyGroup>
 
     <ItemGroup>
@@ -20,12 +22,7 @@
         <PackageReference Include="RandomUserAgent" Version="1.1.2" />
         <PackageReference Include="RestSharp" Version="106.12.0" />
         <PackageReference Include="RestSharp.Serializers.NewtonsoftJson" Version="106.12.0" />
+        <PackageReference Include="websocket-sharp-ex" Version="1.0.0" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Reference Include="websocket-sharp, Version=1.0.2.59611, Culture=neutral, PublicKeyToken=5660b08a1845a91e">
-        <HintPath>..\..\libs\websocket-sharp.dll</HintPath>
-      </Reference>
-    </ItemGroup>
-    
 </Project>

@@ -20,7 +20,6 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
     /// </summary>
     public class OfficialTradeApiWrapper
     {
-        readonly IRateLimit _rateLimit;
         static readonly string UserAgent = RandomUa.RandomUserAgent;
 
         public const int MaxItemsPerFetch = 10;
@@ -30,12 +29,14 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
         {
             UseNewConfiguration(configuration);
 
-            _rateLimit = rateLimit;
+            RateLimit = rateLimit;
 
             _restClient = new RestClient(OfficialTradeConstants.OfficialTradeApiUrl);
             _restClient.UseNewtonsoftJson();
             _restClient.AddDefaultHeader("User-Agent", UserAgent);
         }
+
+        public IRateLimit RateLimit { get; }
 
         public void UseNewConfiguration(OfficialTradeConfiguration configuration)
         {
@@ -85,18 +86,38 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
             }
             else
             {
+                htmlQuery = Regex.Replace(htmlQuery, "\"disc\":\".+?\",", "");
+
                 var query = JsonConvert.DeserializeObject(htmlQuery);
                 var sort = new { price = "asc" };
 
-                request.AddJsonBody(
-                    new
-                    {
-                        query,
-                        sort
-                    });
+                request.AddJsonBody(new { query, sort });
             }
 
             var response = GetRequest<SearchResponse>(request);
+            if (!response.IsSuccessful)
+            {
+                throw new HttpRequestException();
+            }
+
+            return response.Data;
+        }
+
+        public SearchResponse SearchExchange(string league, string have, string want, int min = 1, int delay = -1)
+        {
+            var request = new RestRequest($"{OfficialTradeConstants.OfficialTradeApiUrl}/exchange/{league}", Method.POST);
+
+            var exchangeRequest = new ExchangeRequest
+            {
+                Exchange = new Exchange
+                {
+                    Have = new[] { have }, Want = new[] { want }, Minimum = min, Status = new Status { Option = "online" }
+                }
+            };
+
+            request.AddJsonBody(exchangeRequest);
+
+            var response = GetRequest<SearchResponse>(request, delay);
             if (!response.IsSuccessful)
             {
                 throw new HttpRequestException();
@@ -147,9 +168,9 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
             return response.Data;
         }
 
-        IRestResponse<T> GetRequest<T>(IRestRequest request) where T : class
+        IRestResponse<T> GetRequest<T>(IRestRequest request, int overridenDelay = -1) where T : class
         {
-            _rateLimit?.Wait();
+            RateLimit?.Wait(overridenDelay);
             return ConfigureRateLimitAndRequest<T>(request);
         }
 
@@ -162,7 +183,7 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
 
             if (ipLimit != null || accountLimit != null)
             {
-                _rateLimit.ChangeInterval(accountLimit?.Value as string, ipLimit?.Value as string);
+                RateLimit.ChangeInterval(accountLimit?.Value as string, ipLimit?.Value as string);
             }
 
             return response;

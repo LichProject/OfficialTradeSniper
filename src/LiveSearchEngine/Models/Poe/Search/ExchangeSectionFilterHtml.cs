@@ -12,6 +12,6 @@ namespace LiveSearchEngine.Models.Poe.Search
     {
         public Dictionary<string, bool> Have { get; set; }
         public Dictionary<string, bool> Want { get; set; }
-        public int Minimum { get; set; }
+        public int Minimum { get; set; } = 1;
     }
 }

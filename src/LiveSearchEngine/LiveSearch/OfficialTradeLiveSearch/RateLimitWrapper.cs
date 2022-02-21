@@ -24,11 +24,15 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
             _interval = new Interval(1000);
         }
 
+        public IReadOnlyList<RateLimit> AccountRate { get; private set; }
+        public IReadOnlyList<RateLimit> IpRate { get; private set; }
+
         public void ChangeInterval(params object[] args)
         {
-            var accountRate = ParseHeader(args.ElementAtOrDefault(0) as string);
-            var ipRate = ParseHeader(args.ElementAtOrDefault(1) as string);
-            var delay = accountRate.Union(ipRate).Max(x => x.TotalDelayMs) + 100;
+            AccountRate = ParseHeader(args.ElementAtOrDefault(0) as string).ToList();
+            IpRate = ParseHeader(args.ElementAtOrDefault(1) as string).ToList();
+            
+            var delay = AccountRate.Union(IpRate).Max(x => x.TotalDelayMs) + 100;
             if (_interval != null && Math.Abs(_interval.Delay - delay) > 0)
             {
                 _interval = new Interval(delay);
@@ -38,14 +42,21 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
         /// <summary>
         /// Wait delay between requests.
         /// </summary>
-        public void Wait()
+        public void Wait(int overridenDelay = -1)
         {
 #if DEBUG
             Console.WriteLine(_interval.TimeLeft);
 #endif
 
-            while (!_interval.Elapsed)
-                Thread.Sleep(DefaultSleepStep);
+            if (overridenDelay > -1)
+            {
+                Thread.Sleep(overridenDelay);
+            }
+            else
+            {
+                while (!_interval.Elapsed)
+                    Thread.Sleep(DefaultSleepStep);
+            }
         }
 
         /// <inheritdoc cref="Wait"/>
