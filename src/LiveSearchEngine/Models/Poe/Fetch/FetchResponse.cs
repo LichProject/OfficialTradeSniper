@@ -1,9 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
 
 namespace LiveSearchEngine.Models.Poe.Fetch
 {
     public class FetchResponse
     {
-        public List<Result> Result { get; set; }
+        public Result[] Result { get; set; } = Array.Empty<Result>();
     }
 }

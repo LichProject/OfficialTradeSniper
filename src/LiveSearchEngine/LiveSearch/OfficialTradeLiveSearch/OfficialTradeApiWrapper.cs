@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
@@ -9,6 +9,7 @@ using LiveSearchEngine.Interfaces;
 using LiveSearchEngine.Models.Poe.Fetch;
 using LiveSearchEngine.Models.Poe.Search;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using RandomUserAgent;
 using RestSharp;
 using RestSharp.Serializers.NewtonsoftJson;
@@ -20,12 +21,13 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
     /// </summary>
     public class OfficialTradeApiWrapper
     {
-        static readonly string UserAgent = RandomUa.RandomUserAgent;
+        static string UserAgent => RandomUa.RandomUserAgent;
 
         public const int MaxItemsPerFetch = 10;
         public const int MaxExchangePerFetch = 20;
 
-        public OfficialTradeApiWrapper(OfficialTradeConfiguration configuration, IRateLimit rateLimit)
+        public OfficialTradeApiWrapper(OfficialTradeConfiguration configuration,
+                                       IRateLimit rateLimit)
         {
             UseNewConfiguration(configuration);
 
@@ -33,7 +35,7 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
 
             _restClient = new RestClient(OfficialTradeConstants.OfficialTradeApiUrl);
             _restClient.UseNewtonsoftJson();
-            _restClient.AddDefaultHeader("User-Agent", UserAgent);
+            _restClient.UserAgent = UserAgent;
         }
 
         public IRateLimit RateLimit { get; }
@@ -43,91 +45,114 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
             _configuration = configuration;
         }
 
+        RestRequest CreateRequest(string uri, Method method)
+        {
+            var request = new RestRequest(uri, method);
+            request.AddCookie(
+                OfficialTradeConstants.PoeSessionIdCookieName,
+                _configuration.PoeSessionId);
+
+            return request;
+        }
+
         public SearchResponse SearchResults(string league, ref string queryId, bool exchange)
         {
             var section = exchange
                 ? "exchange"
                 : "search";
 
-            var html = new RestClient().Execute(
-                new RestRequest($"{OfficialTradeConstants.OfficialTradeUrl}/{section}/{league}/{queryId}", Method.GET));
+            var request = CreateRequest(
+                $"{OfficialTradeConstants.OfficialTradeUrl}/{section}/{league}/{queryId}",
+                Method.GET);
 
-            if (!html.IsSuccessful)
+            var html = _restClient.Execute(request);
+            if (html.StatusCode != HttpStatusCode.OK)
             {
-                throw new HttpRequestException();
+                throw new HttpRequestException(
+                    "Html request error. StatusCode: " + html.StatusCode);
             }
 
             var match = Regex.Match(html.Content, "\\\"state\":(.+),\"loggedIn\"");
             if (!match.Success)
             {
-                throw new InvalidOperationException("Something wrong here");
+                throw new InvalidOperationException("Html content parsing error.");
             }
 
             var htmlQuery = match.Groups[1].Value;
-            var request = new RestRequest($"{OfficialTradeConstants.OfficialTradeApiUrl}/{section}/{league}", Method.POST);
+
+            request = CreateRequest(
+                $"{OfficialTradeConstants.OfficialTradeApiUrl}/{section}/{league}",
+                Method.POST);
 
             if (exchange)
             {
                 var query = JsonConvert.DeserializeObject<ExchangeSectionFilterHtml>(htmlQuery);
                 var queryExchange = query.Exchange;
+                
+                var have = queryExchange.Have.Select(x => x.Key).FirstOrDefault();
+                var want = queryExchange.Want.Select(x => x.Key).FirstOrDefault();
 
-                var exchangeRequest = new ExchangeRequest
-                {
-                    Exchange = new Exchange
-                    {
-                        Have = queryExchange.Have.Select(x => x.Key).ToArray(),
-                        Want = queryExchange.Want.Select(x => x.Key).ToArray(),
-                        Minimum = queryExchange.Minimum,
-                        Status = new Status { Option = query.Status }
-                    }
-                };
-
-                request.AddJsonBody(exchangeRequest);
+                return SearchExchange(league, have, want);
             }
             else
             {
                 htmlQuery = Regex.Replace(htmlQuery, "\"disc\":\".+?\",", "");
 
-                var query = JsonConvert.DeserializeObject(htmlQuery);
+                dynamic query = JsonConvert.DeserializeObject<ExpandoObject>(htmlQuery);
+                query.status = new { option = "online" };
                 var sort = new { price = "asc" };
 
                 request.AddJsonBody(new { query, sort });
             }
 
             var response = GetRequest<SearchResponse>(request);
-            if (!response.IsSuccessful)
+            if (response.StatusCode != HttpStatusCode.OK)
             {
-                throw new HttpRequestException();
+                throw new HttpRequestException(response.Content);
             }
 
             return response.Data;
         }
 
-        public SearchResponse SearchExchange(string league, string have, string want, int min = 1, int delay = -1)
+        public SearchResponseExchange SearchExchange(string league,
+                                                     string have,
+                                                     string want,
+                                                     int min = 1,
+                                                     int delay = -1)
         {
-            var request = new RestRequest($"{OfficialTradeConstants.OfficialTradeApiUrl}/exchange/{league}", Method.POST);
+            var request = CreateRequest(
+                $"{OfficialTradeConstants.OfficialTradeApiUrl}/exchange/{league}",
+                Method.POST);
 
             var exchangeRequest = new ExchangeRequest
             {
-                Exchange = new Exchange
+                Engine = "new",
+                Query = new Exchange
                 {
-                    Have = new[] { have }, Want = new[] { want }, Minimum = min, Status = new Status { Option = "online" }
-                }
+                    Have = new[] { have },
+                    Want = new[] { want },
+                    Minimum = min,
+                    Status = new Status { Option = "online" }
+                },
+                Sort = new ExchangeSort { Have = "asc" }
             };
-
+            
             request.AddJsonBody(exchangeRequest);
 
-            var response = GetRequest<SearchResponse>(request, delay);
-            if (!response.IsSuccessful)
+            var response = GetRequest<SearchResponseExchange>(request, delay);
+            if (response.StatusCode != HttpStatusCode.OK)
             {
-                throw new HttpRequestException();
+                throw new HttpRequestException(response.Content);
             }
 
             return response.Data;
         }
 
         /// <inheritdoc cref="Fetch(string[],string)"/>
-        public FetchResponse Fetch(IEnumerable<string> csvHashes, string queryId, int limit, bool exchange = false)
+        public FetchResponse Fetch(IEnumerable<string> csvHashes,
+                                   string queryId,
+                                   int limit,
+                                   bool exchange = false)
         {
             limit = Math.Min(
                 exchange
@@ -146,7 +171,7 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
         /// <param name="exchange">Is exchange section or not.</param>
         public FetchResponse Fetch(string[] csvHashes, string queryId, bool exchange = false)
         {
-            var request = new RestRequest("/fetch/" + string.Join(",", csvHashes), Method.GET);
+            var request = CreateRequest("/fetch/" + string.Join(",", csvHashes), Method.GET);
             request.AddQueryParameter("query", queryId);
 
             if (exchange)
@@ -154,13 +179,8 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
                 request.AddQueryParameter("exchange", "1");
             }
 
-            if (_configuration.PoeSessionId != null)
-            {
-                request.AddCookie(OfficialTradeConstants.PoeSessionIdCookieName, _configuration.PoeSessionId);
-            }
-
             var response = GetRequest<FetchResponse>(request);
-            if (!response.IsSuccessful)
+            if (response.StatusCode != HttpStatusCode.OK)
             {
                 throw new HttpRequestException("Deserialization failed or request is denied.");
             }
@@ -179,7 +199,8 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
             var response = _restClient.Execute<T>(request);
 
             var ipLimit = response.Headers.FirstOrDefault(x => x.Name == "X-Rate-Limit-Ip");
-            var accountLimit = response.Headers.FirstOrDefault(x => x.Name == "X-Rate-Limit-Account");
+            var accountLimit =
+                response.Headers.FirstOrDefault(x => x.Name == "X-Rate-Limit-Account");
 
             if (ipLimit != null || accountLimit != null)
             {
