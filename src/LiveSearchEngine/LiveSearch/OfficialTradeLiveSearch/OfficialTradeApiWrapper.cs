@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using LiveSearchEngine.Interfaces;
+using LiveSearchEngine.Models.Poe;
 using LiveSearchEngine.Models.Poe.Fetch;
 using LiveSearchEngine.Models.Poe.Search;
 using Newtonsoft.Json;
@@ -35,7 +36,6 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
 
             _restClient = new RestClient(OfficialTradeConstants.OfficialTradeApiUrl);
             _restClient.UseNewtonsoftJson();
-            _restClient.UserAgent = UserAgent;
         }
 
         public IRateLimit RateLimit { get; }
@@ -51,8 +51,40 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
             request.AddCookie(
                 OfficialTradeConstants.PoeSessionIdCookieName,
                 _configuration.PoeSessionId);
+            
+            _restClient.UserAgent = UserAgent;
 
             return request;
+        }
+
+        public bool SendWhisper(string token, int mySaleAmount)
+        {
+            var request = CreateRequest(
+                $"{OfficialTradeConstants.OfficialTradeApiUrl}/whisper",
+                Method.POST);
+
+            request.AddJsonBody(new { token, values = new[] { mySaleAmount } });
+
+            var response = GetRequest<WhisperResponse>(request);
+            return response.IsSuccessful && response.Data.Success;
+        }
+
+        public SearchResponse SearchResults(object query, string league)
+        {
+            var request = CreateRequest(
+                $"{OfficialTradeConstants.OfficialTradeApiUrl}/search/{league}",
+                Method.POST);
+
+            request.AddJsonBody(query);
+
+            var response = GetRequest<SearchResponse>(request);
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new HttpRequestException(
+                    "Html request error. StatusCode: " + response.StatusCode);
+            }
+
+            return response.Data;
         }
 
         public SearchResponse SearchResults(string league, ref string queryId, bool exchange)
@@ -72,7 +104,7 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
                     "Html request error. StatusCode: " + html.StatusCode);
             }
 
-            var match = Regex.Match(html.Content, "\\\"state\":(.+),\"loggedIn\"");
+            var match = Regex.Match(html.Content, @"""state"":(.+)\n}", RegexOptions.Singleline);
             if (!match.Success)
             {
                 throw new InvalidOperationException("Html content parsing error.");

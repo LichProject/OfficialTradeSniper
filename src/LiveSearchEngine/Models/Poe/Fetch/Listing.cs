@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace LiveSearchEngine.Models.Poe.Fetch
 {
@@ -12,5 +13,8 @@ namespace LiveSearchEngine.Models.Poe.Fetch
         public List<Price> Offers { get; set; } = new List<Price>();
         public Stash Stash { get; set; }
         public string Whisper { get; set; }
+        
+        [JsonProperty("whisper_token")]
+        public string WhisperToken { get; set; }
     }
 }
