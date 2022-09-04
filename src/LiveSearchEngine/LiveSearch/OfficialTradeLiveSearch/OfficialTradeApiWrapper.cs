@@ -78,16 +78,12 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
             request.AddJsonBody(query);
 
             var response = GetRequest<SearchResponse>(request);
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new HttpRequestException(
-                    "Html request error. StatusCode: " + response.StatusCode);
-            }
+            ThrowIfRequestFailed(response);
 
             return response.Data;
         }
 
-        public SearchResponse SearchResults(string league, ref string queryId, bool exchange)
+        SearchResponse SearchResults(string league, ref string queryId, bool exchange)
         {
             var section = exchange
                 ? "exchange"
@@ -97,14 +93,10 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
                 $"{OfficialTradeConstants.OfficialTradeUrl}/{section}/{league}/{queryId}",
                 Method.GET);
 
-            var html = _restClient.Execute(request);
-            if (html.StatusCode != HttpStatusCode.OK)
-            {
-                throw new HttpRequestException(
-                    "Html request error. StatusCode: " + html.StatusCode);
-            }
+            var response = _restClient.Execute(request);
+            ThrowIfRequestFailed(response);
 
-            var match = Regex.Match(html.Content, @"""state"":(.+)\n}", RegexOptions.Singleline);
+            var match = Regex.Match(response.Content, @"""state"":(.+)\n}", RegexOptions.Singleline);
             if (!match.Success)
             {
                 throw new InvalidOperationException("Html content parsing error.");
@@ -137,13 +129,20 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
                 request.AddJsonBody(new { query, sort });
             }
 
-            var response = GetRequest<SearchResponse>(request);
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new HttpRequestException(response.Content);
-            }
+            var result = GetRequest<SearchResponse>(request);
+            ThrowIfRequestFailed(result);
 
-            return response.Data;
+            return result.Data;
+        }
+
+        public SearchResponseExchange SearchExchangeByQueryId(string league, ref string queryId)
+        {
+            return (SearchResponseExchange)SearchResults(league, ref queryId, true);
+        }
+
+        public SearchResponse SearchByQueryId(string league, ref string queryId)
+        {
+            return SearchResults(league, ref queryId, false);
         }
 
         public SearchResponseExchange SearchExchange(string league,
@@ -172,10 +171,7 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
             request.AddJsonBody(exchangeRequest);
 
             var response = GetRequest<SearchResponseExchange>(request, delay);
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new HttpRequestException(response.Content);
-            }
+            ThrowIfRequestFailed(response);
 
             return response.Data;
         }
@@ -212,10 +208,7 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
             }
 
             var response = GetRequest<FetchResponse>(request);
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new HttpRequestException("Deserialization failed or request is denied.");
-            }
+            ThrowIfRequestFailed(response);
 
             return response.Data;
         }
@@ -240,6 +233,22 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
             }
 
             return response;
+        }
+
+        static void ThrowIfRequestFailed(IRestResponse response)
+        {
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                var reason = "Request failed. StatusCode: " + response.StatusCode;
+
+                if (!string.IsNullOrEmpty(response.Content) &&
+                    response.Content.Contains(@"""error"""))
+                {
+                    reason += "\n" + response.Content;
+                }
+
+                throw new HttpRequestException(reason);
+            }
         }
 
         OfficialTradeConfiguration _configuration;

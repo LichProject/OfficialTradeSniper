@@ -10,7 +10,7 @@
         <RepositoryType>git</RepositoryType>
         <PackageProjectUrl>https://github.com/LichProject/OfficialTradeSniper</PackageProjectUrl>
         <PackageTags>sniper pathofexile trade poe</PackageTags>
-        <PackageVersion>1.0.4</PackageVersion>
+        <PackageVersion>1.0.6</PackageVersion>
         <PackageLicenseUrl>https://licenses.nuget.org/MIT</PackageLicenseUrl>
         <Configurations>Debug;Release</Configurations>
         <Platforms>AnyCPU;x64</Platforms>
