@@ -7,6 +7,15 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
     /// </summary>
     public class OfficialTradeConfiguration : ILiveSearchConfiguration
     {
+        public OfficialTradeConfiguration(string poeSessionId)
+        {
+            PoeSessionId = poeSessionId;
+        }
+
+        public OfficialTradeConfiguration()
+        {
+        }
+
         /// <summary>
         /// POESESSID Cookie value.
         /// </summary>

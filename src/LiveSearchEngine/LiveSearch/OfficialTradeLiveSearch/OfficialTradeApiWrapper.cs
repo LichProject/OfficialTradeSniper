@@ -69,7 +69,7 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
             return response.IsSuccessful && response.Data.Success;
         }
 
-        public SearchResponse SearchResults(object query, string league)
+        public SearchResponse SearchResultsByQuery(object query, string league)
         {
             var request = CreateRequest(
                 $"{OfficialTradeConstants.OfficialTradeApiUrl}/search/{league}",
@@ -112,11 +112,12 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
             {
                 var query = JsonConvert.DeserializeObject<ExchangeSectionFilterHtml>(htmlQuery);
                 var queryExchange = query.Exchange;
-                
-                var have = queryExchange.Have.Select(x => x.Key).FirstOrDefault();
-                var want = queryExchange.Want.Select(x => x.Key).FirstOrDefault();
 
-                return SearchExchange(league, have, want);
+                var have = queryExchange.Have.Keys.FirstOrDefault();
+                var want = queryExchange.Want.Keys.FirstOrDefault();
+                var min = queryExchange.Minimum;
+
+                return SearchExchange(league, have, want, min);
             }
             else
             {
@@ -160,8 +161,12 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
                 Engine = "new",
                 Query = new Exchange
                 {
-                    Have = new[] { have },
-                    Want = new[] { want },
+                    Have = have != null
+                        ? new[] { have }
+                        : Array.Empty<string>(),
+                    Want = want != null
+                        ? new[] { want }
+                        : Array.Empty<string>(),
                     Minimum = min,
                     Status = new Status { Option = "online" }
                 },
