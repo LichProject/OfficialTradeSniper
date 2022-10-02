@@ -22,7 +22,7 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
     /// </summary>
     public class OfficialTradeApiWrapper
     {
-        static string UserAgent => RandomUa.RandomUserAgent;
+        static string _userAgent;
 
         public const int MaxItemsPerFetch = 10;
         public const int MaxExchangePerFetch = 20;
@@ -36,6 +36,8 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
 
             _restClient = new RestClient(OfficialTradeConstants.OfficialTradeApiUrl);
             _restClient.UseNewtonsoftJson();
+
+            _userAgent = configuration.UserAgent;
         }
 
         public IRateLimit RateLimit { get; }
@@ -52,7 +54,7 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
                 OfficialTradeConstants.PoeSessionIdCookieName,
                 _configuration.PoeSessionId);
             
-            _restClient.UserAgent = UserAgent;
+            _restClient.UserAgent = _userAgent ?? RandomUa.RandomUserAgent;
 
             return request;
         }
@@ -221,13 +223,17 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
         IRestResponse<T> GetRequest<T>(IRestRequest request, int overridenDelay = -1) where T : class
         {
             RateLimit?.Wait(overridenDelay);
-            return ConfigureRateLimitAndRequest<T>(request);
-        }
-
-        IRestResponse<T> ConfigureRateLimitAndRequest<T>(IRestRequest request) where T : class
-        {
+            
             var response = _restClient.Execute<T>(request);
 
+            AdjustRateLimit(response);
+            AdjustUserAgent(response);
+            
+            return response;
+        }
+
+        void AdjustRateLimit(IRestResponse response)
+        {
             var ipLimit = response.Headers.FirstOrDefault(x => x.Name == "X-Rate-Limit-Ip");
             var accountLimit =
                 response.Headers.FirstOrDefault(x => x.Name == "X-Rate-Limit-Account");
@@ -236,8 +242,14 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
             {
                 RateLimit.ChangeInterval(accountLimit?.Value as string, ipLimit?.Value as string);
             }
+        }
 
-            return response;
+        void AdjustUserAgent(IRestResponse response)
+        {
+            if (response.StatusCode == HttpStatusCode.OK && _userAgent == null)
+            {
+                _userAgent = _restClient.UserAgent;
+            }
         }
 
         static void ThrowIfRequestFailed(IRestResponse response)

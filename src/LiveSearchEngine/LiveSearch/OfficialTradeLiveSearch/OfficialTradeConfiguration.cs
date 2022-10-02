@@ -20,5 +20,7 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
         /// POESESSID Cookie value.
         /// </summary>
         public string PoeSessionId { get; set; }
+        
+        public string UserAgent { get; set; }
     }
 }
