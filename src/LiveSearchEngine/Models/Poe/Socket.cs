@@ -1,5 +1,3 @@
-using Newtonsoft.Json;
-
 namespace LiveSearchEngine.Models.Poe
 {
     public class Socket

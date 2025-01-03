@@ -1,14 +1,13 @@
-﻿using LiveSearchEngine.Interfaces;
-
-namespace LiveSearchEngine.Models
+﻿namespace LiveSearchEngine.Models
 {
     public class SniperItemBase : ISniperItem
     {
-        readonly string _url;
+        private readonly string url;
+        private ISearchUrlWrapper liveUrlWrapper;
 
         public SniperItemBase(string description, string url)
         {
-            _url = url;
+            this.url = url;
             Description = description;
         }
 
@@ -17,8 +16,6 @@ namespace LiveSearchEngine.Models
         }
 
         public string Description { get; set; }
-        public ISearchUrlWrapper SearchUrlWrapper => _liveUrlWrapper ?? (_liveUrlWrapper = new LiveUrlWrapperBase(_url));
-
-        ISearchUrlWrapper _liveUrlWrapper;
+        public ISearchUrlWrapper SearchUrlWrapper => liveUrlWrapper ?? (liveUrlWrapper = new LiveUrlWrapperBase(url));
     }
 }

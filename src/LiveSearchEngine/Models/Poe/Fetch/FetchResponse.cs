@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace LiveSearchEngine.Models.Poe.Fetch
+﻿namespace LiveSearchEngine.Models.Poe.Fetch
 {
     public class FetchResponse
     {

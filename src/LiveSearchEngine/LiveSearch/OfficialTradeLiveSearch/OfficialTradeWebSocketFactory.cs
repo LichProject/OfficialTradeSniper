@@ -1,36 +1,45 @@
-﻿using System;
-using LiveSearchEngine.Interfaces;
-using WebSocketSharp;
-using WebSocketSharp.Net;
-
-namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
+﻿namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
 {
     /// <summary>
     /// WebSocket connection to the official trade site.
     /// </summary>
     public class OfficialTradeWebSocketFactory
     {
-        /// <summary>
-        /// Initialize the connection.
-        /// </summary>
-        /// <param name="sniperItem">What do you want to snipe.</param>
-        /// <param name="poeSessionId">POESESSID cookie value.</param>
-        /// <exception cref="InvalidOperationException">Connection has already been established.</exception>
-        public WebSocket Create(ISniperItem sniperItem, string poeSessionId)
-        {
-            if (_ws != null)
-                return _ws;
-            
-            _ws = new WebSocket(sniperItem.SearchUrlWrapper.WebSocketUrl); 
-            _ws.SetCookie(new Cookie(OfficialTradeConstants.PoeSessionIdCookieName, poeSessionId));
+        private readonly OfficialTradeConfiguration configuration;
+        private WebSocketConnection connection;
 
-            _ws.Log.Level = LogLevel.Debug;
-            _ws.Compression = CompressionMethod.Deflate;
-            _ws.Origin = OfficialTradeConstants.OfficialSiteUrl;
-            
-            return _ws;
+        public OfficialTradeWebSocketFactory(OfficialTradeConfiguration configuration)
+        {
+            this.configuration = configuration;
         }
 
-        WebSocket _ws;
+        public WebSocketConnection Create(ISniperItem sniperItem)
+        {
+            if (connection != null)
+            {
+                return connection;
+            }
+
+            string webSocketUrl = (configuration.UsePoe2Api
+                                      ? OfficialTradeConstants.OfficialTradeApiUrlPoe2
+                                      : OfficialTradeConstants.OfficialTradeApiUrl)
+                                  .Replace("https", "wss")
+                                  + $"/{sniperItem.SearchUrlWrapper.WebSocketRelative.Replace("live", $"{(configuration.UsePoe2Api ? "live/poe2" : "live")}")}";
+
+            Uri uri = new(webSocketUrl);
+
+            ClientWebSocket clientWebSocket = new();
+            clientWebSocket.Options.Cookies = new();
+
+            clientWebSocket.Options.Cookies.Add(new Cookie(
+                OfficialTradeConstants.PoeSessionIdCookieName,
+                configuration.PoeSessionId,
+                "/", ".pathofexile.com"));
+
+            clientWebSocket.Options.SetRequestHeader("User-Agent", configuration.UserAgent);
+            clientWebSocket.Options.SetRequestHeader("Origin", OfficialTradeConstants.OfficialSiteUrl);
+
+            return connection = new(sniperItem, clientWebSocket, uri);
+        }
     }
 }

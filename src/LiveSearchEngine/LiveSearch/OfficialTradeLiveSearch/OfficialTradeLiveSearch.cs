@@ -1,70 +1,66 @@
-﻿using System.Collections.Generic;
-using LiveSearchEngine.Interfaces;
-using Newtonsoft.Json;
-using WebSocketSharp;
-
-namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
+﻿namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
 {
     public class OfficialTradeLiveSearch : LiveSearchEngineBase<OfficialTradeConfiguration>
     {
-        const int MaxItemLimit = 10;
-        
-        bool _authenticated;
-        
+        private const int MaxItemLimit = 10;
+
         public OfficialTradeLiveSearch(OfficialTradeConfiguration configuration)
-            : base(configuration, new RateLimitWrapper())
+            : base(configuration)
         {
-            ApiWrapper = new OfficialTradeApiWrapper(configuration, RateLimit);
+            ApiWrapper = new OfficialTradeApiWrapper(configuration);
         }
 
         public OfficialTradeApiWrapper ApiWrapper { get; }
 
-
-        #region Overrides of BaseLiveSearchEngine<OfficialTradeConfiguration>
-
+        /// <inheritdoc />
         public override void UseNewConfiguration(OfficialTradeConfiguration configuration)
         {
             base.UseNewConfiguration(configuration);
             ApiWrapper.UseNewConfiguration(configuration);
         }
 
-        public override bool ValidateConfiguration()
+        /// <inheritdoc />
+        public override bool ValidateConfiguration() =>
+            !string.IsNullOrEmpty(Configuration.PoeSessionId);
+
+        /// <inheritdoc />
+        protected override WebSocketConnection CreateWebSocket(ISniperItem sniperItem) =>
+            new OfficialTradeWebSocketFactory(Configuration).Create(sniperItem);
+
+        /// <inheritdoc />
+        protected override async Task WsOnMessageReceived(ISniperItem sniperItem, string data)
         {
-            return !string.IsNullOrEmpty(Configuration.PoeSessionId);
-        }
+            DateTime receivedAt = DateTime.Now;
 
-        protected override WebSocket CreateWebSocket(ISniperItem sniperItem)
-        {
-            return new OfficialTradeWebSocketFactory().Create(sniperItem, Configuration.PoeSessionId);
-        }
-
-        #endregion
-
-        #region WebSocket
-
-        protected override void WsOnMessageReceived(ISniperItem sniperItem, MessageEventArgs e)
-        {
-            var response = e.Data;
-            if (!_authenticated && response.Contains("auth"))
+            if (data.Contains("auth"))
             {
-                _authenticated = true;
                 return;
             }
 
-            var p = JsonConvert.DeserializeObject<Dictionary<string, Stack<string>>>(response);
-            if (!p.ContainsKey("new"))
-                return;
-            
-            var fetchResponse = ApiWrapper.Fetch(p["new"], sniperItem.SearchUrlWrapper.Hash, MaxItemLimit);
-            if (fetchResponse == null)
-                return;
-
-            foreach (var result in fetchResponse.Result)
+            Dictionary<string, Stack<string>> p = JsonConvert.DeserializeObject<Dictionary<string, Stack<string>>>(data);
+            if (!p.TryGetValue("new", out Stack<string> value))
             {
-                RaiseItemFoundEvent(sniperItem, result.Item, result.Listing);
+                return;
+            }
+
+            FetchResponse fetchResponse;
+            try
+            {
+                if ((fetchResponse = await ApiWrapper.FetchAsync(value, sniperItem.SearchUrlWrapper.Hash, MaxItemLimit)) == null)
+                {
+                    return;
+                }
+            }
+            catch (HttpRequestException e)
+            {
+                RaiseErrorEvent(sniperItem, e);
+                return;
+            }
+
+            foreach (Result result in fetchResponse.Result)
+            {
+                RaiseItemFoundEvent(sniperItem, result.Item, result.Listing, receivedAt);
             }
         }
-
-        #endregion
     }
 }

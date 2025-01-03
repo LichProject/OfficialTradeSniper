@@ -1,6 +1,4 @@
-﻿using System;
-using LiveSearchEngine.Models.Poe.Enums;
-using Newtonsoft.Json;
+﻿using LiveSearchEngine.Models.Poe.Enums;
 
 namespace LiveSearchEngine.Models.Poe
 {
@@ -61,6 +59,8 @@ namespace LiveSearchEngine.Models.Poe
         /// </summary>
         [JsonProperty("ilvl")]
         public int ItemLevel { get; set; }
+
+        public Influences Influences { get; set; }
 
         /// <summary>
         /// Item implicit mods.

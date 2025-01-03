@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using LiveSearchEngine.Models.Poe.Fetch;
-
-namespace LiveSearchEngine.Models.Poe.Search
+﻿namespace LiveSearchEngine.Models.Poe.Search
 {
     public class SearchResponseExchange : SearchResponse
     {

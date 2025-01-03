@@ -1,20 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Dynamic;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Text.RegularExpressions;
-using LiveSearchEngine.Interfaces;
-using LiveSearchEngine.Models.Poe;
-using LiveSearchEngine.Models.Poe.Fetch;
-using LiveSearchEngine.Models.Poe.Search;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
-using RandomUserAgent;
-using RestSharp;
-using RestSharp.Serializers.NewtonsoftJson;
-
 namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
 {
     /// <summary>
@@ -22,172 +5,171 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
     /// </summary>
     public class OfficialTradeApiWrapper
     {
-        static string _userAgent;
+        private static string userAgent;
+        private readonly string officialTradeApiUrl;
+        private readonly string officialTradeUrl;
 
         public const int MaxItemsPerFetch = 10;
         public const int MaxExchangePerFetch = 20;
 
-        public OfficialTradeApiWrapper(OfficialTradeConfiguration configuration,
-                                       IRateLimit rateLimit)
+        public OfficialTradeApiWrapper(OfficialTradeConfiguration configuration)
         {
             UseNewConfiguration(configuration);
 
-            RateLimit = rateLimit;
+            officialTradeApiUrl = configuration.UsePoe2Api
+                ? OfficialTradeConstants.OfficialTradeApiUrlPoe2
+                : OfficialTradeConstants.OfficialTradeApiUrl;
 
-            _restClient = new RestClient(OfficialTradeConstants.OfficialTradeApiUrl);
-            _restClient.UseNewtonsoftJson();
+            officialTradeUrl = configuration.UsePoe2Api
+                ? OfficialTradeConstants.OfficialTradeUrlPoe2
+                : OfficialTradeConstants.OfficialTradeUrl;
 
-            _userAgent = configuration.UserAgent;
+            userAgent = configuration.UserAgent;
+            _restClient = new(
+                officialTradeApiUrl,
+                options => options.UserAgent = userAgent ?? RandomUa.RandomUserAgent,
+                configureSerialization: cfg => cfg.UseNewtonsoftJson());
         }
 
-        public IRateLimit RateLimit { get; }
+        public AsyncPolicyWrap RateLimitPolicy { get; private set; }
 
-        public void UseNewConfiguration(OfficialTradeConfiguration configuration)
-        {
+        public void UseNewConfiguration(OfficialTradeConfiguration configuration) =>
             _configuration = configuration;
-        }
 
-        RestRequest CreateRequest(string uri, Method method)
+        private RestRequest CreateRequest(string uri, Method method)
         {
-            var request = new RestRequest(uri, method);
-            request.AddCookie(
-                OfficialTradeConstants.PoeSessionIdCookieName,
-                _configuration.PoeSessionId);
-            
-            _restClient.UserAgent = _userAgent ?? RandomUa.RandomUserAgent;
+            RestRequest request = new(uri, method);
+
+            request.AddCookie(OfficialTradeConstants.PoeSessionIdCookieName, _configuration.PoeSessionId, "/", ".pathofexile.com");
+            request.AddHeader("Host", OfficialTradeConstants.OfficialSiteDomain);
+            request.AddHeader("X-Requested-With", "XMLHttpRequest");
 
             return request;
         }
 
-        public bool SendWhisper(string token, int mySaleAmount)
+        public async Task<bool> SendWhisperRegularAsync(string token)
         {
-            var request = CreateRequest(
-                $"{OfficialTradeConstants.OfficialTradeApiUrl}/whisper",
-                Method.POST);
+            RestRequest request = CreateRequest($"{officialTradeApiUrl}/whisper", Method.Post);
 
-            request.AddJsonBody(new { token, values = new[] { mySaleAmount } });
+            request.AddJsonBody(new { token });
 
-            var response = GetRequest<WhisperResponse>(request);
+            RestResponse<WhisperResponse> response = await _restClient.ExecuteAsync<WhisperResponse>(request);
+            ThrowIfRequestFailed(response);
+
+            return response.Data.Success;
+        }
+
+        public async Task<bool> SendWhisperExchangeAsync(string token, int multiplier)
+        {
+            RestRequest request = CreateRequest($"{officialTradeApiUrl}/whisper", Method.Post);
+
+            request.AddJsonBody(new { token, values = new[] { multiplier } });
+
+            RestResponse<WhisperResponse> response = await _restClient.ExecuteAsync<WhisperResponse>(request);
             return response.IsSuccessful && response.Data.Success;
         }
 
-        public SearchResponse SearchResultsByQuery(object query, string league)
+        public async Task<SearchResponse> SearchResultsByQueryAsync(object query, string league)
         {
-            var request = CreateRequest(
-                $"{OfficialTradeConstants.OfficialTradeApiUrl}/search/{league}",
-                Method.POST);
+            RestRequest request = CreateRequest($"{officialTradeApiUrl}/search{(_configuration.UsePoe2Api ? "/poe2" : "")}/{league}", Method.Post);
 
             request.AddJsonBody(query);
 
-            var response = GetRequest<SearchResponse>(request);
+            RestResponse<SearchResponse> response = await GetRequestAsync<SearchResponse>(request);
             ThrowIfRequestFailed(response);
 
             return response.Data;
         }
 
-        SearchResponse SearchResults(string league, ref string queryId, bool exchange)
+        private async Task<SearchResponse> SearchResultsAsync(string league, string queryId, bool exchange)
         {
-            var section = exchange
+            string section = exchange
                 ? "exchange"
                 : "search";
 
-            var request = CreateRequest(
-                $"{OfficialTradeConstants.OfficialTradeUrl}/{section}/{league}/{queryId}",
-                Method.GET);
+            RestRequest request = CreateRequest($"{officialTradeUrl}/{section}/{league}/{queryId}", Method.Get);
 
-            var response = _restClient.Execute(request);
+            RestResponse response = await _restClient.ExecuteAsync(request);
             ThrowIfRequestFailed(response);
 
-            var match = Regex.Match(response.Content, @"""state"":(.+)\n}", RegexOptions.Singleline);
+            Match match = Regex.Match(response.Content!, @"""state"":(.+)\n}(?:\);})", RegexOptions.Singleline);
             if (!match.Success)
             {
-                throw new InvalidOperationException("Html content parsing error.");
+                throw new InvalidOperationException("Html content parsing error. Status: " + response.StatusCode);
             }
 
-            var htmlQuery = match.Groups[1].Value;
+            string htmlQuery = match.Groups[1].Value;
 
-            request = CreateRequest(
-                $"{OfficialTradeConstants.OfficialTradeApiUrl}/{section}/{league}",
-                Method.POST);
+            request = CreateRequest($"{officialTradeApiUrl}/{section}/{league}", Method.Post);
 
             if (exchange)
             {
-                var query = JsonConvert.DeserializeObject<ExchangeSectionFilterHtml>(htmlQuery);
-                var queryExchange = query.Exchange;
+                ExchangeSectionFilterHtml query = JsonConvert.DeserializeObject<ExchangeSectionFilterHtml>(htmlQuery);
+                ExchangeHtml queryExchange = query.Exchange;
 
-                var have = queryExchange.Have.Keys.FirstOrDefault();
-                var want = queryExchange.Want.Keys.FirstOrDefault();
-                var min = queryExchange.Minimum;
+                string have = queryExchange.Have.Keys.FirstOrDefault();
+                string want = queryExchange.Want.Keys.FirstOrDefault();
+                int min = queryExchange.Stock?.Min ?? 1;
 
-                return SearchExchange(league, have, want, min);
+                return await SearchExchangeAsync(league, have, want, min);
             }
             else
             {
-                htmlQuery = Regex.Replace(htmlQuery, "\"disc\":\".+?\",", "");
-
-                dynamic query = JsonConvert.DeserializeObject<ExpandoObject>(htmlQuery);
-                query.status = new { option = "online" };
+                IDictionary<string, object> query = JsonConvert.DeserializeObject<ExpandoObject>(htmlQuery);
+                query.Remove("disc");
+                query["status"] = new { option = "onlineleague" };
                 var sort = new { price = "asc" };
-
                 request.AddJsonBody(new { query, sort });
             }
 
-            var result = GetRequest<SearchResponse>(request);
+            RestResponse<SearchResponse> result = await GetRequestAsync<SearchResponse>(request);
             ThrowIfRequestFailed(result);
 
             return result.Data;
         }
 
-        public SearchResponseExchange SearchExchangeByQueryId(string league, ref string queryId)
-        {
-            return (SearchResponseExchange)SearchResults(league, ref queryId, true);
-        }
+        public async Task<SearchResponseExchange> SearchExchangeByQueryIdAsync(string league, string queryId) =>
+            (SearchResponseExchange)(await SearchResultsAsync(league, queryId, true));
 
-        public SearchResponse SearchByQueryId(string league, ref string queryId)
-        {
-            return SearchResults(league, ref queryId, false);
-        }
+        public Task<SearchResponse> SearchByQueryIdAsync(string league, ref string queryId) =>
+            SearchResultsAsync(league, queryId, false);
 
-        public SearchResponseExchange SearchExchange(string league,
-                                                     string have,
-                                                     string want,
-                                                     int min = 1,
-                                                     int delay = -1)
+        public async Task<SearchResponseExchange> SearchExchangeAsync(
+            string league,
+            string have,
+            string want,
+            int min = 1,
+            int delay = -1)
         {
-            var request = CreateRequest(
-                $"{OfficialTradeConstants.OfficialTradeApiUrl}/exchange/{league}",
-                Method.POST);
+            RestRequest request = CreateRequest($"{officialTradeApiUrl}/exchange/{league}", Method.Post);
 
-            var exchangeRequest = new ExchangeRequest
+            ExchangeRequest exchangeRequest = new ExchangeRequest
             {
                 Engine = "new",
                 Query = new Exchange
                 {
-                    Have = have != null
-                        ? new[] { have }
-                        : Array.Empty<string>(),
-                    Want = want != null
-                        ? new[] { want }
-                        : Array.Empty<string>(),
-                    Minimum = min,
+                    Have = have != null ? new[] { have } : Array.Empty<string>(),
+                    Want = want != null ? new[] { want } : Array.Empty<string>(),
+                    Stock = new ExchangeRequestStock { Min = min },
                     Status = new Status { Option = "online" }
                 },
                 Sort = new ExchangeSort { Have = "asc" }
             };
-            
+
             request.AddJsonBody(exchangeRequest);
 
-            var response = GetRequest<SearchResponseExchange>(request, delay);
+            RestResponse<SearchResponseExchange> response = await GetRequestAsync<SearchResponseExchange>(request, delay);
             ThrowIfRequestFailed(response);
 
             return response.Data;
         }
 
         /// <inheritdoc cref="Fetch(string[],string)"/>
-        public FetchResponse Fetch(IEnumerable<string> csvHashes,
-                                   string queryId,
-                                   int limit,
-                                   bool exchange = false)
+        public async Task<FetchResponse> FetchAsync(
+            IEnumerable<string> csvHashes,
+            string queryId,
+            int limit,
+            bool exchange = false)
         {
             limit = Math.Min(
                 exchange
@@ -195,18 +177,12 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
                     : MaxItemsPerFetch,
                 limit);
 
-            return Fetch(csvHashes.Take(limit).ToArray(), queryId, exchange);
+            return await FetchAsync(csvHashes.Take(limit).ToArray(), queryId, exchange);
         }
 
-        /// <summary>
-        /// Fetch the items data from csvHashes.
-        /// </summary>
-        /// <param name="csvHashes">CSV Hashes (from websocket or search response).</param>
-        /// <param name="queryId">Search hash (the hash in the search url after the league name).</param>
-        /// <param name="exchange">Is exchange section or not.</param>
-        public FetchResponse Fetch(string[] csvHashes, string queryId, bool exchange = false)
+        public async Task<FetchResponse> FetchAsync(string[] csvHashes, string queryId, bool exchange = false)
         {
-            var request = CreateRequest("/fetch/" + string.Join(",", csvHashes), Method.GET);
+            RestRequest request = CreateRequest("/fetch/" + string.Join(",", csvHashes), Method.Get);
             request.AddQueryParameter("query", queryId);
 
             if (exchange)
@@ -214,61 +190,108 @@ namespace LiveSearchEngine.LiveSearch.OfficialTradeLiveSearch
                 request.AddQueryParameter("exchange", "1");
             }
 
-            var response = GetRequest<FetchResponse>(request);
+            RestResponse<FetchResponse> response = await GetRequestAsync<FetchResponse>(request);
             ThrowIfRequestFailed(response);
 
             return response.Data;
         }
 
-        IRestResponse<T> GetRequest<T>(IRestRequest request, int overridenDelay = -1) where T : class
+        private async Task<RestResponse<T>> GetRequestAsync<T>(RestRequest request, int overridenDelay = -1) where T : class
         {
-            RateLimit?.Wait(overridenDelay);
-            
-            var response = _restClient.Execute<T>(request);
+            RestResponse<T> response = null;
 
-            AdjustRateLimit(response);
-            AdjustUserAgent(response);
-            
+            if (RateLimitPolicy != null)
+            {
+                await RateLimitPolicy.ExecuteAsync(async () => response = await _restClient.ExecuteAsync<T>(request));
+            }
+            else
+            {
+                response = await _restClient.ExecuteAsync<T>(request);
+
+                AdjustRateLimit(response);
+                AdjustUserAgent(response);
+            }
+
             return response;
         }
 
-        void AdjustRateLimit(IRestResponse response)
+        private void AdjustRateLimit(RestResponse response)
         {
-            var ipLimit = response.Headers.FirstOrDefault(x => x.Name == "X-Rate-Limit-Ip");
-            var accountLimit =
-                response.Headers.FirstOrDefault(x => x.Name == "X-Rate-Limit-Account");
+            Parameter ipLimit = response.Headers?.FirstOrDefault(x => x.Name == "X-Rate-Limit-Ip");
+            Parameter accountLimit = response.Headers?.FirstOrDefault(x => x.Name == "X-Rate-Limit-Account");
 
             if (ipLimit != null || accountLimit != null)
             {
-                RateLimit.ChangeInterval(accountLimit?.Value as string, ipLimit?.Value as string);
+                List<RateLimit> accountRate = ParseHeader(accountLimit?.Value as string).ToList();
+                List<RateLimit> ipRate = ParseHeader(ipLimit?.Value as string).ToList();
+
+                AsyncRetryPolicy retryPolicy = Policy
+                    .Handle<RateLimitRejectedException>()
+                    .RetryForeverAsync();
+
+                IAsyncPolicy[] rateLimits = accountRate.Concat(ipRate)
+                    .Select(rate => Polly.RateLimit.RateLimitPolicy.RateLimitAsync(rate.TotalRequests, TimeSpan.FromSeconds(rate.TotalSeconds), rate.TotalRequests / 2))
+                    .ToArray<IAsyncPolicy>();
+
+                AsyncPolicyWrap rateLimitPolicy = Policy.WrapAsync(rateLimits);
+
+                RateLimitPolicy = retryPolicy.WrapAsync(rateLimitPolicy);
             }
         }
 
-        void AdjustUserAgent(IRestResponse response)
+        private void AdjustUserAgent(RestResponse response)
         {
-            if (response.StatusCode == HttpStatusCode.OK && _userAgent == null)
+            if (response.StatusCode == HttpStatusCode.OK && userAgent == null)
             {
-                _userAgent = _restClient.UserAgent;
+                userAgent = _restClient.DefaultParameters
+                    .GetParameters(ParameterType.HttpHeader)
+                    .FirstOrDefault(x => x.Name == "User-Agent")
+                    ?.Value?.ToString();
             }
         }
 
-        static void ThrowIfRequestFailed(IRestResponse response)
+        private static void ThrowIfRequestFailed(RestResponse response)
         {
-            if (response.StatusCode != HttpStatusCode.OK)
+            if (response.StatusCode == HttpStatusCode.OK && !string.IsNullOrEmpty(response.Content))
             {
-                var reason = "Request failed. StatusCode: " + response.StatusCode;
+                return;
+            }
 
-                if (!string.IsNullOrEmpty(response.Content) &&
-                    response.Content.Contains(@"""error"""))
-                {
-                    reason += "\n" + response.Content;
-                }
+            string reason = "Request failed. StatusCode: " + response.StatusCode;
 
-                throw new HttpRequestException(reason);
+            if (!string.IsNullOrEmpty(response.Content) && response.Content.Contains(@"""error"""))
+            {
+                reason += "\n" + response.Content;
+            }
+
+            throw new HttpRequestException(reason);
+        }
+
+        private static IEnumerable<RateLimit> ParseHeader(string header)
+        {
+            if (header == null)
+            {
+                yield break;
+            }
+
+            foreach (RateLimit rateLimit in header
+                         .Split(',')
+                         .Select(
+                             part =>
+                             {
+                                 string[] segments = part.Split(':');
+                                 return new RateLimit
+                                 {
+                                     TotalRequests = int.Parse(segments[0]),
+                                     TotalSeconds = int.Parse(segments[1])
+                                 };
+                             }))
+            {
+                yield return rateLimit;
             }
         }
 
-        OfficialTradeConfiguration _configuration;
-        readonly RestClient _restClient;
+        private OfficialTradeConfiguration _configuration;
+        private readonly RestClient _restClient;
     }
 }

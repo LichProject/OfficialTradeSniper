@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json;
-
-namespace LiveSearchEngine.Models.Poe
+﻿namespace LiveSearchEngine.Models.Poe
 {
     public class Price
     {

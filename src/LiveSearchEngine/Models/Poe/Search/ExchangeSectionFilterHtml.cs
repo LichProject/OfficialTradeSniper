@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace LiveSearchEngine.Models.Poe.Search
 {
     public class ExchangeSectionFilterHtml
@@ -12,6 +10,12 @@ namespace LiveSearchEngine.Models.Poe.Search
     {
         public Dictionary<string, bool> Have { get; set; }
         public Dictionary<string, bool> Want { get; set; }
-        public int Minimum { get; set; } = 1;
+        public ExchangeStock Stock { get; set; }
+    }
+
+    public class ExchangeStock
+    {
+        public int? Min { get; set; }
+        public int? Max { get; set; }
     }
 }

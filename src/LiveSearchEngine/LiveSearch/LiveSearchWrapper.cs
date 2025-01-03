@@ -1,18 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using LiveSearchEngine.Delegates;
-using LiveSearchEngine.Enums;
-using LiveSearchEngine.Interfaces;
-
-namespace LiveSearchEngine.LiveSearch
+﻿namespace LiveSearchEngine.LiveSearch
 {
     /// <summary>
     /// Wrapper of the livesearch engine.
     /// </summary>
-    public sealed class LiveSearchWrapper<TEngine, TConfiguration> : IDisposable where TEngine : LiveSearchEngineBase<TConfiguration>
-                                                                                 where TConfiguration : ILiveSearchConfiguration
+    public sealed class LiveSearchWrapper<TEngine, TConfiguration> : IAsyncDisposable
+        where TEngine : LiveSearchEngineBase<TConfiguration>
+        where TConfiguration : ILiveSearchConfiguration
     {
+        private readonly List<ISniperItem> sniperItems = [];
+
         public event EventHandler Start
         {
             add => Engine.Start += value;
@@ -30,12 +26,6 @@ namespace LiveSearchEngine.LiveSearch
             add => Engine.Connected += value;
             remove => Engine.Connected -= value;
         }
-        
-        public event SniperItemConnectedStateDelegate Reconnected
-        {
-            add => Engine.Reconnected += value;
-            remove => Engine.Reconnected -= value;
-        }
 
         public event WebSocketDisconnectedDelegate Disconnected
         {
@@ -43,7 +33,7 @@ namespace LiveSearchEngine.LiveSearch
             remove => Engine.Disconnected -= value;
         }
 
-        public event WebSocketDisconnectedDelegate Error
+        public event WebSocketErrorDelegate Error
         {
             add => Engine.Error += value;
             remove => Engine.Error -= value;
@@ -76,65 +66,82 @@ namespace LiveSearchEngine.LiveSearch
         /// <summary>
         /// Clear the sniper list.
         /// </summary>
-        public void RemoveAllSniperItems()
-        {
-            _sniperItems.Clear();
-        }
+        public void RemoveAllSniperItems() =>
+            sniperItems.Clear();
 
         /// <summary>
         /// Add sniper items to the livesearch.
         /// </summary>
-        public void AddSniperItems(IEnumerable<ISniperItem> sniperItems)
-        {
-            _sniperItems.AddRange(sniperItems);
-        }
+        public void AddSniperItems(IEnumerable<ISniperItem> sniperItems) =>
+            this.sniperItems.AddRange(sniperItems);
 
         /// <summary>
         /// Add a sniper item to the livesearch.
         /// </summary>
-        public void AddSniperItem(ISniperItem sniperItem)
-        {
-            _sniperItems.Add(sniperItem);
-        }
+        public void AddSniperItem(ISniperItem sniperItem) =>
+            sniperItems.Add(sniperItem);
 
         /// <summary>
         /// Run the livesearch engine (establish connections and start receiving websocket messages).
         /// </summary>
         /// <exception cref="InvalidOperationException">Sniper-list isn't enitialized (use SetSniperList method).</exception>
-        public RunError ConnectAll()
+        public async Task<RunError> ConnectAsync(CancellationToken cancellationToken)
         {
-            if (!_sniperItems.Any())
+            if (!sniperItems.Any())
+            {
                 return RunError.NoItems;
+            }
 
             if (Engine.IsConnected)
+            {
                 return RunError.AlreadyConnected;
+            }
 
             if (!Engine.ValidateConfiguration())
+            {
                 return RunError.InvalidConfiguration;
+            }
 
-            Engine.ConnectAll(_sniperItems);
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return RunError.None;
+            }
 
-            Stopped = false;
+            try
+            {
+                Stopped = false;
+                await Engine.DisconnectAsync(sniperItems, cancellationToken);
 
-            return RunError.None;
+                return RunError.None;
+            }
+            catch
+            {
+                Stopped = true;
+                throw;
+            }
         }
 
-        /// <inheritdoc cref="ILiveSearchEngine.CloseAll"/>
-        public void StopAll()
+        /// <inheritdoc cref="ILiveSearchEngine.DisconnectAsync"/>
+        public async Task DisconnectAsync()
         {
-            Stopped = true;
-            Engine.CloseAll();
+            try
+            {
+                await Engine.DisconnectAsync();
+            }
+            finally
+            {
+                Stopped = true;
+            }
         }
 
-        readonly List<ISniperItem> _sniperItems = new List<ISniperItem>();
-
-        #region IDisposable
-
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
-            Engine?.Dispose();
-        }
+            if (Engine == null)
+            {
+                return;
+            }
 
-        #endregion
+            await Engine.DisconnectAsync();
+        }
     }
 }

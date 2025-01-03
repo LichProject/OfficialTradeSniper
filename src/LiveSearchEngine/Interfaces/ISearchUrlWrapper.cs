@@ -4,6 +4,6 @@
     {
         string Hash { get; }
         string SearchUrl { get; }
-        string WebSocketUrl { get; }
+        string WebSocketRelative { get; }
     }
 }

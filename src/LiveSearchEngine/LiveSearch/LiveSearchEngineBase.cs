@@ -1,188 +1,184 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using LiveSearchEngine.Delegates;
-using LiveSearchEngine.Interfaces;
-using LiveSearchEngine.Models.Poe;
-using LiveSearchEngine.Models.Poe.Fetch;
-using WebSocketSharp;
-
 namespace LiveSearchEngine.LiveSearch
 {
-    public abstract class LiveSearchEngineBase<T> : ILiveSearchEngine where T : ILiveSearchConfiguration
+    public abstract class LiveSearchEngineBase<T> : ILiveSearchEngine, IAsyncDisposable
+        where T : ILiveSearchConfiguration
     {
+        private readonly List<WebSocketConnection> webSockets = [];
+
+        private bool started;
+
         protected LiveSearchEngineBase(T configuration)
         {
             Configuration = configuration;
-            Start += (_, __) => _started = true;
-            Stop += (_, __) => _started = false;
+            Start += (_, __) => started = true;
+            Stop += (_, __) => started = false;
         }
 
-        protected LiveSearchEngineBase(T configuration, IRateLimit rateLimit)
-            : this(configuration)
-        {
-            RateLimit = rateLimit;
-        }
-
-        ~LiveSearchEngineBase()
-        {
-            Dispose();
-        }
-
-        public virtual void UseNewConfiguration(T configuration)
-        {
+        public virtual void UseNewConfiguration(T configuration) =>
             Configuration = configuration;
-        }
-
-        public int ReconnectAttempts { get; set; } = 5;
-
-        #region Implementation of ILiveSearchEngine
 
         public event EventHandler Start;
         public event EventHandler Stop;
         public event ItemFoundDelegate ItemFound;
         public event SniperItemConnectedStateDelegate Connected;
-        public event SniperItemConnectedStateDelegate Reconnected;
         public event WebSocketDisconnectedDelegate Disconnected;
-        public event WebSocketDisconnectedDelegate Error;
+        public event WebSocketErrorDelegate Error;
 
         protected void RaiseStopEvent() => Stop?.Invoke(this, EventArgs.Empty);
         protected void RaiseStartEvent() => Start?.Invoke(this, EventArgs.Empty);
 
-        protected void RaiseItemFoundEvent(ISniperItem sniperItem, Item item, Listing listing) =>
-            ItemFound?.Invoke(sniperItem, item, listing);
+        protected void RaiseItemFoundEvent(ISniperItem sniperItem, Item item, Listing listing, DateTime receivedAt) =>
+            ItemFound?.Invoke(sniperItem, item, listing, receivedAt);
 
         protected void RaiseConnectedEvent(ISniperItem sniperItem) => Connected?.Invoke(sniperItem);
-        protected void RaiseReconnectedEvent(ISniperItem sniperItem) => Reconnected?.Invoke(sniperItem);
-        protected void RaiseDisconnectedEvent(ISniperItem sniperItem, Exception exception) => Disconnected?.Invoke(sniperItem, exception);
+        protected void RaiseDisconnectedEvent(ISniperItem sniperItem, string reason) => Disconnected?.Invoke(sniperItem, reason);
         protected void RaiseErrorEvent(ISniperItem sniperItem, Exception exception) => Error?.Invoke(sniperItem, exception);
 
-        public IRateLimit RateLimit { get; }
         protected T Configuration { get; private set; }
 
         public abstract bool ValidateConfiguration();
-        protected abstract WebSocket CreateWebSocket(ISniperItem sniperItem);
+        protected abstract WebSocketConnection CreateWebSocket(ISniperItem sniperItem);
 
-        public virtual bool IsConnected => _webSockets.ToList().Any(x => x.ReadyState == WebSocketState.Open);
+        public virtual bool IsConnected => webSockets.ToList().Any(x => x.IsConnected);
 
-        public virtual List<WebSocket> ConnectAll(IEnumerable<ISniperItem> sniperItems)
+        public virtual async Task<List<WebSocketConnection>> DisconnectAsync(IEnumerable<ISniperItem> sniperItems, CancellationToken cancellationToken)
         {
-            var websockets = new List<WebSocket>();
+            AsyncPolicyWrap policies = CreateWebSocketConnectionPolicies();
+            List<WebSocketConnection> websockets = [];
 
-            foreach (var si in sniperItems)
+            bool connected = false;
+
+            foreach (ISniperItem item in sniperItems.ToArray())
             {
-                var ws = Connect(si);
-                websockets.Add(ws);
-                RateLimit?.Wait();
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                await policies.ExecuteAsync(
+                    async () =>
+                    {
+                        WebSocketConnection ws = await ConnectAsync(item);
+                        if (ws == null)
+                        {
+                            connected = false;
+                            return;
+                        }
+
+                        websockets.Add(ws);
+                        connected = true;
+                    });
+            }
+
+            if (cancellationToken.IsCancellationRequested || !connected)
+            {
+                await Task.WhenAll(websockets.Select(x => x.CloseAsync()));
+                return [];
             }
 
             RaiseStartEvent();
 
-            _canReconnect = true;
-
             return websockets;
         }
 
-        public virtual WebSocket Connect(ISniperItem sniperItem)
+        // todo refactor it
+        public bool ShouldReconnect(ISniperItem sniperItem)
         {
-            var ws = CreateWebSocket(sniperItem);
-            ws.OnClose += (_, args) => WsOnClosed(ws, sniperItem, args);
-            ws.OnError += (_, args) => WsOnError(ws, sniperItem, args);
-            ws.OnMessage += (_, args) => WsOnMessageReceivedInternal(sniperItem, args);
+            WebSocketConnection existingConnection = webSockets.FirstOrDefault(x => x.SniperItem.Equals(sniperItem));
+            return existingConnection == null
+                   || (!existingConnection.IsConnected
+                       && existingConnection.State != WebSocketState.Connecting
+                       && existingConnection.State != WebSocketState.CloseSent);
+        }
 
-            _webSockets.Add(ws);
+        public virtual async Task<WebSocketConnection> ConnectAsync(ISniperItem sniperItem)
+        {
+            WebSocketConnection existingConnection = webSockets.FirstOrDefault(x => x.SniperItem.Equals(sniperItem));
+            if (existingConnection != null)
+            {
+                if (existingConnection.IsConnected
+                    || existingConnection.State == WebSocketState.Connecting
+                    || existingConnection.State == WebSocketState.CloseSent)
+                {
+                    return existingConnection;
+                }
 
-            ws.Connect();
+                try
+                {
+                    await existingConnection.CloseAsync();
+                }
+                catch
+                {
+                }
+
+                webSockets.Remove(existingConnection);
+            }
+
+            WebSocketConnection ws = CreateWebSocket(sniperItem);
+            ws.OnClose += reason => WsOnClosed(ws, sniperItem, reason);
+            ws.OnError += exception => WsOnError(ws, sniperItem, exception);
+            ws.OnMessage += data => WsOnMessageReceivedInternal(sniperItem, data);
+
+            webSockets.Add(ws);
+
+            if (!await ws.ConnectAsync())
+            {
+                return null;
+            }
+
             RaiseConnectedEvent(sniperItem);
 
             return ws;
         }
 
-        public virtual void CloseAll()
+        public virtual async Task DisconnectAsync()
         {
-            _canReconnect = false;
-
-            foreach (var ws in _webSockets.ToList())
+            foreach (WebSocketConnection ws in webSockets.ToList())
             {
-                Close(ws);
+                await ws.CloseAsync();
+                webSockets.Remove(ws);
             }
 
             RaiseStopEvent();
         }
 
-        public virtual void Close(WebSocket ws)
+        private async Task WsOnMessageReceivedInternal(ISniperItem sniperItem, string data)
         {
-            ws.Close();
-            _webSockets.Remove(ws);
-        }
-
-        #endregion
-
-        #region WebSocket
-
-        void WsOnMessageReceivedInternal(ISniperItem sniperItem, MessageEventArgs e)
-        {
-            if (!_started)
-                return;
-
-            WsOnMessageReceived(sniperItem, e);
-        }
-
-        protected abstract void WsOnMessageReceived(ISniperItem sniperItem, MessageEventArgs e);
-
-        protected virtual void WsOnError(WebSocket ws, ISniperItem sniperItem, ErrorEventArgs e)
-        {
-            RaiseErrorEvent(sniperItem, e.Exception);
-            if (EnsureAuthorized(e.Exception))
+            if (!started)
             {
-                Reconnect(ws, sniperItem);
+                return;
             }
+
+            await WsOnMessageReceived(sniperItem, data);
         }
 
-        protected virtual void WsOnClosed(WebSocket ws, ISniperItem sniperItem, EventArgs e)
+        protected abstract Task WsOnMessageReceived(ISniperItem sniperItem, string data);
+
+        protected virtual Task WsOnError(WebSocketConnection ws, ISniperItem sniperItem, Exception e)
         {
-            RaiseDisconnectedEvent(sniperItem, null);
-            Reconnect(ws, sniperItem);
+            RaiseErrorEvent(sniperItem, e);
+            return Task.CompletedTask;
         }
 
-        void Reconnect(WebSocket ws, ISniperItem sniperItem)
+        protected virtual Task WsOnClosed(WebSocketConnection ws, ISniperItem sniperItem, string reason)
         {
-            if (!_canReconnect)
-                return;
-
-            if (!_reconnectCounter.TryGetValue(sniperItem, out int attempts))
-                _reconnectCounter[sniperItem] = 0;
-
-            if (attempts >= ReconnectAttempts)
-                return;
-
-            _reconnectCounter[sniperItem]++;
-            
-            ws.Connect();
-            RaiseReconnectedEvent(sniperItem);
+            RaiseDisconnectedEvent(sniperItem, reason);
+            return Task.CompletedTask;
         }
 
-        bool EnsureAuthorized(Exception exception)
+        private static AsyncPolicyWrap CreateWebSocketConnectionPolicies()
         {
-            var message = exception?.Message;
-            return message == null || !message.Contains("Unauthorized");
+            AsyncRetryPolicy retryRateLimitPolicy = Policy.Handle<RateLimitRejectedException>().RetryForeverAsync();
+
+            return PolicyWrap.WrapAsync(
+                retryRateLimitPolicy,
+                RateLimitPolicy.RateLimitAsync(10, TimeSpan.FromSeconds(10), maxBurst: 10));
         }
 
-        #endregion
-
-        bool _started;
-        bool _canReconnect = true;
-
-        readonly Dictionary<ISniperItem, int> _reconnectCounter = new Dictionary<ISniperItem, int>();
-        readonly List<WebSocket> _webSockets = new List<WebSocket>();
-
-        #region IDisposable
-
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
-            CloseAll();
+            webSockets.ForEach(x => x.Dispose());
+            await DisconnectAsync();
         }
-
-        #endregion
     }
 }

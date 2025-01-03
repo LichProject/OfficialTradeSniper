@@ -1,23 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using LiveSearchEngine.Delegates;
-using WebSocketSharp;
-
-namespace LiveSearchEngine.Interfaces
+﻿namespace LiveSearchEngine.Interfaces
 {
     /// <summary>
     /// Livesearch engine.
     /// </summary>
-    public interface ILiveSearchEngine : IDisposable
+    public interface ILiveSearchEngine
     {
         event EventHandler Start;
         event EventHandler Stop;
         event ItemFoundDelegate ItemFound;
         event SniperItemConnectedStateDelegate Connected;
         event WebSocketDisconnectedDelegate Disconnected;
-        event WebSocketDisconnectedDelegate Error;
-
-        IRateLimit RateLimit { get; }
+        event WebSocketErrorDelegate Error;
 
         /// <summary>
         /// Ensure any of websocket connections has been established.
@@ -26,20 +19,18 @@ namespace LiveSearchEngine.Interfaces
 
         bool ValidateConfiguration();
 
-        List<WebSocket> ConnectAll(IEnumerable<ISniperItem> sniperItems);
+        Task<List<WebSocketConnection>> DisconnectAsync(IEnumerable<ISniperItem> sniperItems, CancellationToken cancellationToken);
 
         /// <summary>
         /// Connect engine to the livesearch.
         /// You should connect OnItemFound event to the ValidationDelegate from the base class.
         /// </summary>
         /// <param name="sniperItem">Your sniper item instance.</param>
-        WebSocket Connect(ISniperItem sniperItem);
-
-        void Close(WebSocket ws);
+        Task<WebSocketConnection> ConnectAsync(ISniperItem sniperItem);
 
         /// <summary>
         /// Stops the livesearch engine and disconnects all available websocket connections.
         /// </summary>
-        void CloseAll();
+        Task DisconnectAsync();
     }
 }

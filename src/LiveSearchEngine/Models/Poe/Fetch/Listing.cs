@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using Newtonsoft.Json;
-
-namespace LiveSearchEngine.Models.Poe.Fetch
+﻿namespace LiveSearchEngine.Models.Poe.Fetch
 {
     public class Listing
     {

@@ -45,7 +45,7 @@ namespace LiveSearchEngine.Common
             {
                 lock (_lock)
                 {
-                    var timeLeft = Delay - _sw.ElapsedMilliseconds;
+                    double timeLeft = Delay - _sw.ElapsedMilliseconds;
                     if (timeLeft < 0)
                         return 0;
 
@@ -54,7 +54,7 @@ namespace LiveSearchEngine.Common
             }
         }
 
-        readonly object _lock = new object();
-        readonly Stopwatch _sw;
+        private readonly object _lock = new object();
+        private readonly Stopwatch _sw;
     }
 }
