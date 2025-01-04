@@ -19,7 +19,7 @@
 
         bool ValidateConfiguration();
 
-        Task<List<WebSocketConnection>> DisconnectAsync(IEnumerable<ISniperItem> sniperItems, CancellationToken cancellationToken);
+        Task<List<WebSocketConnection>> ConnectAsync(IEnumerable<ISniperItem> sniperItems, CancellationToken cancellationToken);
 
         /// <summary>
         /// Connect engine to the livesearch.

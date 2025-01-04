@@ -41,7 +41,7 @@ namespace LiveSearchEngine.LiveSearch
 
         public virtual bool IsConnected => webSockets.ToList().Any(x => x.IsConnected);
 
-        public virtual async Task<List<WebSocketConnection>> DisconnectAsync(IEnumerable<ISniperItem> sniperItems, CancellationToken cancellationToken)
+        public virtual async Task<List<WebSocketConnection>> ConnectAsync(IEnumerable<ISniperItem> sniperItems, CancellationToken cancellationToken)
         {
             AsyncPolicyWrap policies = CreateWebSocketConnectionPolicies();
             List<WebSocketConnection> websockets = [];

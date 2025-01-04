@@ -110,7 +110,7 @@
             try
             {
                 Stopped = false;
-                await Engine.DisconnectAsync(sniperItems, cancellationToken);
+                await Engine.ConnectAsync(sniperItems, cancellationToken);
 
                 return RunError.None;
             }
